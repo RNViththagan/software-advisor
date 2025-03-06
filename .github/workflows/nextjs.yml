@@ -44,12 +44,12 @@ jobs:
             exit 1
           fi
 
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: ${{ steps.detect-package-manager.outputs.manager }}
+          cache: "npm"
+          cache-dependency-path: "webapp/package-lock.json"
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
@@ -66,11 +66,20 @@ jobs:
 
       - name: Install Dependencies
         working-directory: webapp
-        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
-
+        run: |
+          if [ -f "webapp/yarn.lock" ]; then
+            yarn install --frozen-lockfile
+          elif [ -f "webapp/package-lock.json" ]; then
+            npm ci
+          else
+            echo "No lock file found. Exiting..."
+            exit 1
+          fi
       - name: Build with Next.js
         working-directory: webapp
-        run: ${{ steps.detect-package-manager.outputs.runner }} next build && next export
+        run: |
+          npx next build
+          npx next export -o out
 
       - name: Upload Artifact
         uses: actions/upload-pages-artifact@v3
