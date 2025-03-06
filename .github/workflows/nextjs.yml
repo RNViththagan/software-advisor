@@ -63,18 +63,11 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('webapp/package-lock.json', 'webapp/yarn.lock') }}-${{ hashFiles('webapp/**/*.[jt]s', 'webapp/**/*.[jt]sx') }}
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('webapp/package-lock.json', 'webapp/yarn.lock') }}-
-
+     
       - name: Install Dependencies
         working-directory: webapp
-        run: |
-          if [ -f "webapp/yarn.lock" ]; then
-            yarn install --frozen-lockfile
-          elif [ -f "webapp/package-lock.json" ]; then
-            npm ci
-          else
-            echo "No lock file found. Exiting..."
-            exit 1
-          fi
+        run: npm ci
+
       - name: Build with Next.js
         working-directory: webapp
         run: |
