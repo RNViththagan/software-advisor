@@ -24,6 +24,11 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Set Git user info
+      run: |
+        git config --global user.email "you@example.com"  # Replace with your email
+        git config --global user.name "Your Name"  # Replace with your name
+
     - name: Build project
       run: |
         echo "VITE_GEMINI_API_KEY=${{ secrets.VITE_GEMINI_API_KEY }}" >> .env
