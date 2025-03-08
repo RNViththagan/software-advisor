@@ -1,46 +1,42 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Software } from "../data/software.ts";
 
-console.log("Test Key",import.meta.env.VITE_GEMINI_API_KEY)
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-export interface Software {
-  id: string;
-  name: string;
-  category: 'productivity' | 'development' | 'design' | 'communication' | 'business' | 'multimedia';
-  description: string;
-  pricing: 'free' | 'freemium' | 'paid' | 'subscription';
-  platforms: string[];
-  features: string[];
-  bestFor: string[];
-  alternatives: string[];
-  learningCurve: 1 | 2 | 3 | 4 | 5; // 1 = Easy, 5 = Hard
-  imageUrl: string;
-  priceRange?: string;
-}
+
 export async function getSuggestions(input: string): Promise<string[]> {
-  if (!input.trim()) return [];
-  return []
+  if (!input.trim()) return []; // Return empty array if input is empty or whitespace
+
   try {
-    const model = genAI.getGenerativeModel({model: 'gemini-1.5-flash'});
-    const prompt = `Given this partial task description: "${input}"
-  Suggest 5 ways to complete this thought, focusing on software-related tasks.
-  Return only the suggestions as a JSON array of strings.
-  Make suggestions specific and actionable.`;
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Given the following partial task description: "${input}",  
+Suggest 5 short, actionable completions or clarifications to help finish this description.  
+Each completion should help clarify the task and make it more specific or actionable, and should focus on software-related actions, tools, or steps.  
+Return only the suggestions as a JSON array of strings. Each suggestion should be concise, ideally a few words, helping to complete or refine the user's task description.`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response();
-    const text = await response.text();
 
-    return JSON.parse(text);
+    const match =
+      result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
+        /\[.*\]/s,
+      );
+    const suggestions = match ? JSON.parse(match[0]) : null;
+
+    if (!suggestions) {
+      console.error("Invalid JSON response from AI");
+      return []; // Return empty array if no valid suggestions
+    }
+    return suggestions;
   } catch (error) {
-    console.error('Error getting suggestions:', error);
-    return [];
+    console.error("Error getting suggestions:", error);
+    return []; // Return empty array in case of error
   }
-
 }
+
 export async function analyzeSoftwareNeeds(description: string): Promise<any> {
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `
 Generate a structured JSON output for software recommendations based on the given task description:  
 '${description}'
 
@@ -70,27 +66,26 @@ Each software recommendation should be an object with the following attributes:
 - Provide **at least 5 software recommendations** to ensure a wide variety of options.
 `;
 
-
-
-      const result = await model.generateContent(prompt);
-    console.log(result)
-    const match = result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(/\[.*\]/s);
+    const result = await model.generateContent(prompt);
+    const match =
+      result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
+        /\[.*\]/s,
+      );
     const jsonData = match ? JSON.parse(match[0]) : null;
 
-    if (!jsonData) return res.status(500).json({ error: "Invalid JSON response from AI" });
+    if (!jsonData)
+      return res.status(500).json({ error: "Invalid JSON response from AI" });
 
     // Convert prices and validate website links
-    const processedData = jsonData.map((software) => ({
+    const processedData = jsonData.map((software: Software) => ({
       ...software,
-      official_website: software.official_website?.startsWith("http") ? software.official_website : "N/A",
+      official_website: software.official_website?.startsWith("http")
+        ? software.official_website
+        : "N/A",
     }));
-    console.log("data",processedData)
-
-
     return processedData;
   } catch (error) {
     console.error("Error analyzing software needs:", error);
     return null;
   }
 }
-

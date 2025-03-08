@@ -1,0 +1,43 @@
+name: Auto Merge Develop to Main
+
+on:
+  push:
+    branches:
+      - Develop  # Trigger action on push to Develop (with a capital D)
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get last commit message on develop
+        id: last_commit
+        run: |
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Last commit message: $LAST_COMMIT_MSG"
+          echo "::set-output name=commit_message::$LAST_COMMIT_MSG"
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Checkout main branch
+        run: |
+          git fetch origin main
+          git checkout main
+
+      - name: Merge develop into main (if commit message matches)
+        run: |
+          # Convert commit message to lowercase for case-insensitive comparison
+          COMMIT_MSG_LOWER=$(echo "${{ steps.last_commit.outputs.commit_message }}" | tr '[:upper:]' '[:lower:]')
+          
+          if [[ "$COMMIT_MSG_LOWER" == *"ready to deploy"* ]]; then
+            echo "Commit message matches, merging Develop into main."
+            git merge origin/Develop --no-ff --allow-unrelated-histories -m "Merge Develop into main"
+            git push origin main
+          else
+            echo "Commit message does not match, skipping merge."
+          fi
