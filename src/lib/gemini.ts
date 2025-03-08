@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-console.log("Test Key",import.meta.env.VITE_GEMINI_API_KEY)
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 export interface Software {
   id: string;
