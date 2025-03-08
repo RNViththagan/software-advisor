@@ -36,7 +36,7 @@ jobs:
           
           if [[ "$COMMIT_MSG_LOWER" == *"ready to deploy"* ]]; then
             echo "Commit message matches, merging Develop into main."
-            git merge origin/Develop --no-ff -m "Merge Develop into main"
+            git merge origin/Develop --no-ff --allow-unrelated-histories -m "Merge Develop into main"
             git push origin main
           else
             echo "Commit message does not match, skipping merge."
