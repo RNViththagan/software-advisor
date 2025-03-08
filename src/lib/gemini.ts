@@ -39,7 +39,7 @@ export async function getSuggestions(input: string): Promise<string[]> {
 export async function analyzeSoftwareNeeds(description: string): Promise<any> {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const prompt = `
+      const prompt = `
 Generate a structured JSON output for software recommendations based on the given task description:  
 '${description}'
 
@@ -66,10 +66,12 @@ Each software recommendation should be an object with the following attributes:
 - Convert pricing to LKR where applicable.
 - Ensure all missing values are replaced with 'N/A'.
 - Output **only** a valid JSON array, without additional text or explanations.
+- Provide **at least 5 software recommendations** to ensure a wide variety of options.
 `;
 
 
-    const result = await model.generateContent(prompt);
+
+      const result = await model.generateContent(prompt);
     console.log(result)
     const match = result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(/\[.*\]/s);
     const jsonData = match ? JSON.parse(match[0]) : null;
