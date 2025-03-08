@@ -3,10 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # Trigger on push to the main branch
+      - main  # Trigger deployment on push to the main branch
   pull_request:
     branches:
-      - main  # Trigger on pull request to the main branch
+      - main  # Trigger deployment on pull request to the main branch
 
 jobs:
   deploy:
@@ -19,15 +19,10 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16'  # Specify your Node.js version here
+        node-version: '16'  # Specify the Node.js version you want to use
 
     - name: Install dependencies
       run: npm install
-
-    - name: Set Git user info
-      run: |
-        git config --global user.email "you@example.com"  # Replace with your email
-        git config --global user.name "Your Name"  # Replace with your name
 
     - name: Build project
       run: |
@@ -35,6 +30,7 @@ jobs:
         npm run build
 
     - name: Deploy to GitHub Pages
-      run: npm run deploy
-      env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GH_TOKEN }}  # Use your GitHub token
+        publish_dir: ./dist  # The directory to publish
