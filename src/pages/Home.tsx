@@ -5,7 +5,12 @@ import { SoftwareCard } from "../components/SoftwareCard";
 import { getSuggestions, analyzeSoftwareNeeds } from "../lib/gemini";
 import debounce from "lodash/debounce";
 
-export function Home() {
+interface HomeProps {
+  hasSearched: boolean;
+  setHasSearched: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export function Home({ hasSearched, setHasSearched }: HomeProps) {
   const [filters, setFilters] = useState({
     category: "all",
     pricing: "all",
@@ -21,12 +26,18 @@ export function Home() {
   const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const allPlatforms: any[] = ["Android", "iOS"];
   const [software, setSoftware] = useState([]);
+
+  // Reset taskDescription when hasSearched becomes false
+  useEffect(() => {
+    if (!hasSearched) {
+      setTaskDescription(""); // Reset taskDescription to empty
+    }
+  }, [hasSearched]); // Depend on hasSearched, so it runs whenever it changes
 
   const debouncedGetSuggestions = useRef(
     debounce(async (input: string) => {
