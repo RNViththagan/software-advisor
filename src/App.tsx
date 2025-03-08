@@ -5,7 +5,7 @@ import { About } from "./pages/About";
 
 function App() {
   return (
-    <Router basename="/software-recommender">
+    <Router basename="/software-advisor">
       <div className="min-h-screen bg-gray-50">
         <Header />
         <Routes>

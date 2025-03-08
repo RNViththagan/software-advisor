@@ -1,6 +1,6 @@
-# Software Recommender
+# Software Advisor
 
-The **Software Recommender** project provides software recommendations based on specific user task descriptions. Using **Node.js** in the backend, it connects to the **Google Gemini API** to generate AI-based recommendations. This repository contains the backend setup with a planned **Next.js** frontend.
+The **Software Advisor** project provides software recommendations based on specific user task descriptions. Using **Node.js** in the backend, it connects to the **Google Gemini API** to generate AI-based recommendations. This repository contains the backend setup with a planned **Next.js** frontend.
 
 ## Project Structure
 
@@ -17,34 +17,24 @@ The **Software Recommender** project provides software recommendations based on 
 
 1. **Clone the repository:**
     ```bash
-    git clone https://github.com/RNViththagan/software-recommender.git
+    git clone https://github.com/RNViththagan/software-advisor.git
     ```
-
-2. **Navigate to the backend directory:**
-    ```bash
-    cd software-recommender/backend
-    ```
-
-3. **Install dependencies:**
+2. **Install dependencies:**
     ```bash
     npm install
     ```
 
-4. **Set up environment variables:**
+3. **Set up environment variables:**
     - Create a `.env` file and add your Google Gemini API key:
       ```
-      GEMINI_API_KEY=your_api_key_here
+      VITE_GEMINI_API_KEY=your_api_key_here
       ```
 
-5. **Run the backend server:**
+4. **Run project:**
     ```bash
-    npm start
-    ```
-   The backend will be available at `http://localhost:5000`.
-
-## Frontend Setup (Next.js)
-
-The frontend will be built using **Next.js** (planned for later).
+    npm run dev   
+   ```
+   
 
 ## Contributing
 
