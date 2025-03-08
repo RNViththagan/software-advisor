@@ -3,7 +3,7 @@ name: Auto Merge Develop to Main
 on:
   push:
     branches:
-      - develop  # Trigger action on push to develop
+      - Develop  # Trigger action on push to develop
 
 jobs:
   merge:
@@ -34,7 +34,7 @@ jobs:
           # Convert commit message to lowercase for case-insensitive comparison
           COMMIT_MSG_LOWER=$(echo "${{ steps.last_commit.outputs.commit_message }}" | tr '[:upper:]' '[:lower:]')
           
-          if [[ "$COMMIT_MSG_LOWER" == *"ready to merge"* ]]; then
+          if [[ "$COMMIT_MSG_LOWER" == *"ready to deploy"* ]]; then
             echo "Commit message matches, merging develop into main."
             git merge origin/develop --no-ff -m "Merge develop into main"
             git push origin main
