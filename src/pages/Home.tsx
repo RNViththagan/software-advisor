@@ -136,6 +136,12 @@ export function Home() {
                       setShowDescriptionSuggestions(false); // turn on
                     }}
                     onFocus={() => setShowDescriptionSuggestions(false)} // turn on
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && taskDescription.trim()) {
+                        e.preventDefault(); // Prevent the default behavior (line break)
+                        handleSearch(); // Trigger the search function
+                      }
+                    }}
                   />
                   {showDescriptionSuggestions &&
                     descriptionSuggestions.length > 0 && (
@@ -188,13 +194,20 @@ export function Home() {
                     <div className="flex gap-4">
                       <div className="relative flex-1">
                         <textarea
-                          className="w-full h-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
+                          className="p-2 w-full h-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                           value={taskDescription}
                           onChange={(e) => {
                             setTaskDescription(e.target.value);
                             setShowDescriptionSuggestions(true); // turn on
                           }}
                           onFocus={() => setShowDescriptionSuggestions(false)} // turn on
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && taskDescription.trim()) {
+                              e.preventDefault(); // Prevent the default behavior (line break)
+                              handleSearch(); // Trigger the search function
+                            }
+                          }}
                         />
                         {showDescriptionSuggestions &&
                           descriptionSuggestions.length > 0 && (
