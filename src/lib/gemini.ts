@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Software } from "../data/software.ts";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
@@ -8,29 +9,27 @@ export async function getSuggestions(input: string): Promise<string[]> {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // The new, corrected prompt for generating suggestions based on software tasks
     const prompt = `Given the following partial task description: "${input}",  
 Suggest 5 short, actionable completions or clarifications to help finish this description.  
 Each completion should help clarify the task and make it more specific or actionable, and should focus on software-related actions, tools, or steps.  
 Return only the suggestions as a JSON array of strings. Each suggestion should be concise, ideally a few words, helping to complete or refine the user's task description.`;
 
     const result = await model.generateContent(prompt);
-    console.log("result", result);
+
     const match =
       result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
         /\[.*\]/s,
       );
     const suggestions = match ? JSON.parse(match[0]) : null;
 
-    if (!suggestions)
-      return res.status(500).json({ error: "Invalid JSON response from AI" });
-
-    console.log("suggestions", suggestions);
+    if (!suggestions) {
+      console.error("Invalid JSON response from AI");
+      return []; // Return empty array if no valid suggestions
+    }
     return suggestions;
   } catch (error) {
     console.error("Error getting suggestions:", error);
-
-    return []; // In case of error, return an empty array
+    return []; // Return empty array in case of error
   }
 }
 
@@ -68,7 +67,6 @@ Each software recommendation should be an object with the following attributes:
 `;
 
     const result = await model.generateContent(prompt);
-    console.log(result);
     const match =
       result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
         /\[.*\]/s,
@@ -79,14 +77,12 @@ Each software recommendation should be an object with the following attributes:
       return res.status(500).json({ error: "Invalid JSON response from AI" });
 
     // Convert prices and validate website links
-    const processedData = jsonData.map((software) => ({
+    const processedData = jsonData.map((software: Software) => ({
       ...software,
       official_website: software.official_website?.startsWith("http")
         ? software.official_website
         : "N/A",
     }));
-    console.log("data", processedData);
-
     return processedData;
   } catch (error) {
     console.error("Error analyzing software needs:", error);
