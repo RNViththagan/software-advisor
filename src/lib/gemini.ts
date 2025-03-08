@@ -1,32 +1,37 @@
-import {GoogleGenerativeAI} from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 export async function getSuggestions(input: string): Promise<string[]> {
-    if (!input.trim()) return [];
-    return []
-    try {
-        const model = genAI.getGenerativeModel({model: 'gemini-1.5-flash'});
-        const prompt = `Given this partial task description: "${input}"
-  Suggest 5 ways to complete this thought, focusing on software-related tasks.
-  Return only the suggestions as a JSON array of strings.
-  Make suggestions specific and actionable.`;
+  if (!input.trim()) return []; // Return empty array if input is empty or whitespace
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response();
-        const text = await response.text();
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        return JSON.parse(text);
-    } catch (error) {
-        console.error('Error getting suggestions:', error);
-        return [];
-    }
+    // The new, corrected prompt for generating suggestions based on software tasks
+    const prompt = `Given this partial task description: "${input}",
+Suggest 5 software-related actions or steps that could help with this task.
+Each suggestion should focus on practical, software-related solutions to the problem.
+Return only the suggestions as a JSON array of strings. Ensure the suggestions are actionable and relevant to software tasks.`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response();
+    const text = await response.text();
+
+    // Parse and return the suggestions as JSON
+    const suggestions = JSON.parse(text);
+    return suggestions;
+  } catch (error) {
+    console.error("Error getting suggestions:", error);
+
+    return []; // In case of error, return an empty array
+  }
 }
 
 export async function analyzeSoftwareNeeds(description: string): Promise<any> {
-    try {
-        const model = genAI.getGenerativeModel({model: 'gemini-1.5-flash'});
-        const prompt = `
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `
 Generate a structured JSON output for software recommendations based on the given task description:  
 '${description}'
 
@@ -56,26 +61,29 @@ Each software recommendation should be an object with the following attributes:
 - Provide **at least 5 software recommendations** to ensure a wide variety of options.
 `;
 
+    const result = await model.generateContent(prompt);
+    console.log(result);
+    const match =
+      result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
+        /\[.*\]/s,
+      );
+    const jsonData = match ? JSON.parse(match[0]) : null;
 
-        const result = await model.generateContent(prompt);
-        console.log(result)
-        const match = result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(/\[.*\]/s);
-        const jsonData = match ? JSON.parse(match[0]) : null;
+    if (!jsonData)
+      return res.status(500).json({ error: "Invalid JSON response from AI" });
 
-        if (!jsonData) return res.status(500).json({error: "Invalid JSON response from AI"});
+    // Convert prices and validate website links
+    const processedData = jsonData.map((software) => ({
+      ...software,
+      official_website: software.official_website?.startsWith("http")
+        ? software.official_website
+        : "N/A",
+    }));
+    console.log("data", processedData);
 
-        // Convert prices and validate website links
-        const processedData = jsonData.map((software) => ({
-            ...software,
-            official_website: software.official_website?.startsWith("http") ? software.official_website : "N/A",
-        }));
-        console.log("data", processedData)
-
-
-        return processedData;
-    } catch (error) {
-        console.error("Error analyzing software needs:", error);
-        return null;
-    }
+    return processedData;
+  } catch (error) {
+    console.error("Error analyzing software needs:", error);
+    return null;
+  }
 }
-
