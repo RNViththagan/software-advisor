@@ -3,7 +3,7 @@ name: Auto Merge Develop to Main
 on:
   push:
     branches:
-      - Develop  # Trigger action on push to Develop (with a capital D)
+      - Develop  # Trigger action on push to Develop
 
 jobs:
   merge:
@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Get last commit message on develop
+      - name: Get last commit message on Develop
         id: last_commit
         run: |
           LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
@@ -29,7 +29,7 @@ jobs:
           git fetch origin main
           git checkout main
 
-      - name: Merge develop into main (if commit message matches)
+      - name: Merge Develop into main (if commit message matches)
         run: |
           # Convert commit message to lowercase for case-insensitive comparison
           COMMIT_MSG_LOWER=$(echo "${{ steps.last_commit.outputs.commit_message }}" | tr '[:upper:]' '[:lower:]')
@@ -37,6 +37,9 @@ jobs:
           if [[ "$COMMIT_MSG_LOWER" == *"ready to deploy"* ]]; then
             echo "Commit message matches, merging Develop into main."
             git merge origin/Develop --no-ff --allow-unrelated-histories -m "Merge Develop into main"
+            # Attempt the merge and capture the result
+            git merge origin/Develop --no-ff -m "Merge Develop into main" || { echo "Merge conflicts detected, skipping push."; exit 1; }
+            
             git push origin main
           else
             echo "Commit message does not match, skipping merge."
