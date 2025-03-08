@@ -1,8 +1,9 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "software-recommender",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://rnviththagan.github.io/software-recommender/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
