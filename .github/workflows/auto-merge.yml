@@ -3,7 +3,7 @@ name: Auto Merge Develop to Main
 on:
   push:
     branches:
-      - Develop  # Trigger action on push to develop
+      - Develop  # Trigger action on push to Develop (with a capital D)
 
 jobs:
   merge:
@@ -35,8 +35,8 @@ jobs:
           COMMIT_MSG_LOWER=$(echo "${{ steps.last_commit.outputs.commit_message }}" | tr '[:upper:]' '[:lower:]')
           
           if [[ "$COMMIT_MSG_LOWER" == *"ready to deploy"* ]]; then
-            echo "Commit message matches, merging develop into main."
-            git merge origin/develop --no-ff -m "Merge develop into main"
+            echo "Commit message matches, merging Develop into main."
+            git merge origin/Develop --no-ff -m "Merge Develop into main"
             git push origin main
           else
             echo "Commit message does not match, skipping merge."
