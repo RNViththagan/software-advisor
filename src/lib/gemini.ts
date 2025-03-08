@@ -1,20 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-export interface Software {
-  id: string;
-  name: string;
-  category: 'productivity' | 'development' | 'design' | 'communication' | 'business' | 'multimedia';
-  description: string;
-  pricing: 'free' | 'freemium' | 'paid' | 'subscription';
-  platforms: string[];
-  features: string[];
-  bestFor: string[];
-  alternatives: string[];
-  learningCurve: 1 | 2 | 3 | 4 | 5; // 1 = Easy, 5 = Hard
-  imageUrl: string;
-  priceRange?: string;
-}
+
 export async function getSuggestions(input: string): Promise<string[]> {
   if (!input.trim()) return [];
   return []
