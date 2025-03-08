@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader, Sparkles } from 'lucide-react';
-import { software, Software } from '../data/software';
+import { Software } from '../data/software';
 import { SoftwareCard } from '../components/SoftwareCard';
+import { getSuggestions, analyzeSoftwareNeeds } from '../lib/gemini';
+import debounce from 'lodash/debounce';
 
 export function Home() {
   const [filters, setFilters] = useState({
@@ -13,36 +15,38 @@ export function Home() {
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [taskDescription, setTaskDescription] = useState('');
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
+  const [showDescriptionSuggestions, setShowDescriptionSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const descriptionRef = useRef<HTMLDivElement>(null);
+  const allPlatforms: any[] = ["Android", "iOS"];
+  const [software,setSoftware] = useState([]);
 
-  const allPlatforms = Array.from(
-    new Set(software.flatMap(s => s.platforms))
-  ).sort();
-
-  const generateSuggestions = (query: string): string[] => {
-    if (!query) return [];
-    const allTerms = new Set([
-      ...software.map(sw => sw.name.toLowerCase()),
-      ...software.flatMap(sw => sw.features.map(f => f.toLowerCase())),
-      ...software.flatMap(sw => sw.bestFor.map(b => b.toLowerCase())),
-      ...software.map(sw => sw.category.toLowerCase())
-    ]);
-
-    return Array.from(allTerms)
-      .filter(term => term.includes(query.toLowerCase()))
-      .slice(0, 5);
-  };
+  const debouncedGetSuggestions = useRef(
+    debounce(async (input: string) => {
+      const suggestions = await getSuggestions(input);
+      setDescriptionSuggestions(suggestions);
+    }, 500)
+  ).current;
 
   useEffect(() => {
-    setSearchSuggestions(generateSuggestions(search));
-  }, [search]);
+    if (taskDescription.length >= 3) {
+      debouncedGetSuggestions(taskDescription);
+    } else {
+      setDescriptionSuggestions([]);
+    }
+  }, [taskDescription]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSuggestions(false);
+      }
+      if (descriptionRef.current && !descriptionRef.current.contains(event.target as Node)) {
+        setShowDescriptionSuggestions(false);
       }
     };
 
@@ -50,44 +54,46 @@ export function Home() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const matchesTaskDescription = (sw: Software, task: string): boolean => {
-    if (!task) return true;
-    const searchTerms = task.toLowerCase().split(' ');
-    const relevantFields = [
-      sw.name.toLowerCase(),
-      sw.description.toLowerCase(),
-      ...sw.features.map(f => f.toLowerCase()),
-      ...sw.bestFor.map(b => b.toLowerCase())
-    ];
-    return searchTerms.every(term =>
-      relevantFields.some(field => field.includes(term))
-    );
-  };
-
   const handleSearch = async () => {
     if (!taskDescription) return;
     
     setShowSuggestions(false);
+    setShowDescriptionSuggestions(false);
     setIsLoading(true);
     setHasSearched(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
+
+    try {
+      const analysis = await analyzeSoftwareNeeds(taskDescription);
+      setAiAnalysis(analysis);
+      console.log("Analysic",analysis);
+      setSoftware(analysis);
+    } catch (error) {
+      console.error('Error analyzing needs:', error);
+    }
+
     setIsLoading(false);
   };
 
-  const filteredSoftware = software.filter(sw => {
-    const matchesSearch = !search || 
-      sw.name.toLowerCase().includes(search.toLowerCase()) ||
-      sw.description.toLowerCase().includes(search.toLowerCase()) ||
-      sw.features.some(f => f.toLowerCase().includes(search.toLowerCase())) ||
-      sw.bestFor.some(b => b.toLowerCase().includes(search.toLowerCase()));
-
-    const matchesCategory = filters.category === 'all' || sw.category === filters.category;
-    const matchesPricing = filters.pricing === 'all' || sw.pricing === filters.pricing;
-    const matchesPlatform = filters.platform === 'all' || sw.platforms.includes(filters.platform);
-    const matchesTask = matchesTaskDescription(sw, taskDescription);
-
-    return matchesSearch && matchesCategory && matchesPricing && matchesPlatform && matchesTask;
-  });
+  // const filteredSoftware = software.filter(sw => {
+  //   const matchesSearch = !search ||
+  //     sw.name.toLowerCase().includes(search.toLowerCase()) ||
+  //     sw.description.toLowerCase().includes(search.toLowerCase()) ||
+  //     sw.features.some(f => f.toLowerCase().includes(search.toLowerCase())) ||
+  //     sw.bestFor.some(b => b.toLowerCase().includes(search.toLowerCase()));
+  //
+  //   const matchesCategory = filters.category === 'all' || sw.category === filters.category;
+  //   const matchesPricing = filters.pricing === 'all' || sw.pricing === filters.pricing;
+  //   const matchesPlatform = filters.platform === 'all' || sw.platforms.includes(filters.platform);
+  //
+  //   let matchesAiAnalysis = true;
+  //   if (aiAnalysis) {
+  //     matchesAiAnalysis = aiAnalysis.features.some((feature: string) =>
+  //       sw.features.some(f => f.toLowerCase().includes(feature.toLowerCase()))
+  //     );
+  //   }
+  //
+  //   return matchesSearch && matchesCategory && matchesPricing && matchesPlatform && matchesAiAnalysis;
+  // });
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
@@ -107,16 +113,38 @@ export function Home() {
 
           <div className="max-w-3xl mx-auto">
             <div className="bg-white rounded-lg shadow p-6">
-              <div className="mb-6">
+              <div className="mb-6" ref={descriptionRef}>
                 <label className="block text-lg font-medium text-gray-900 mb-2">
                   Describe your task or requirements
                 </label>
-                <textarea
-                  placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
-                  className="w-full h-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  value={taskDescription}
-                  onChange={(e) => setTaskDescription(e.target.value)}
-                />
+                <div className="relative">
+                  <textarea
+                    placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
+                    className="w-full h-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    value={taskDescription}
+                    onChange={(e) => {
+                      setTaskDescription(e.target.value);
+                      setShowDescriptionSuggestions(true);
+                    }}
+                    onFocus={() => setShowDescriptionSuggestions(true)}
+                  />
+                  {showDescriptionSuggestions && descriptionSuggestions.length > 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                      {descriptionSuggestions.map((suggestion, index) => (
+                        <button
+                          key={index}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
+                          onClick={() => {
+                            setTaskDescription(suggestion);
+                            setShowDescriptionSuggestions(false);
+                          }}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <button
@@ -135,22 +163,44 @@ export function Home() {
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader className="w-8 h-8 text-blue-500 animate-spin" />
-              <span className="ml-3 text-lg text-gray-600">Finding the best software for you...</span>
+              <span className="ml-3 text-lg text-gray-600">Analyzing your requirements...</span>
             </div>
           ) : (
             <>
               <div className="mb-8 bg-white rounded-lg shadow p-6">
                 <div className="grid grid-cols-1 gap-6">
-                  <div>
+                  <div ref={descriptionRef}>
                     <label className="block text-lg font-medium text-gray-900 mb-2">
                       Task Description
                     </label>
                     <div className="flex gap-4">
-                      <textarea
-                        className="flex-1 h-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                        value={taskDescription}
-                        onChange={(e) => setTaskDescription(e.target.value)}
-                      />
+                      <div className="relative flex-1">
+                        <textarea
+                          className="w-full h-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          value={taskDescription}
+                          onChange={(e) => {
+                            setTaskDescription(e.target.value);
+                            setShowDescriptionSuggestions(true);
+                          }}
+                          onFocus={() => setShowDescriptionSuggestions(true)}
+                        />
+                        {showDescriptionSuggestions && descriptionSuggestions.length > 0 && (
+                          <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                            {descriptionSuggestions.map((suggestion, index) => (
+                              <button
+                                key={index}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
+                                onClick={() => {
+                                  setTaskDescription(suggestion);
+                                  setShowDescriptionSuggestions(false);
+                                }}
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <button
                         onClick={handleSearch}
                         className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
@@ -175,22 +225,6 @@ export function Home() {
                       }}
                       onFocus={() => setShowSuggestions(true)}
                     />
-                    {showSuggestions && searchSuggestions.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
-                        {searchSuggestions.map((suggestion, index) => (
-                          <button
-                            key={index}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                            onClick={() => {
-                              setSearch(suggestion);
-                              setShowSuggestions(false);
-                            }}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -234,9 +268,41 @@ export function Home() {
                 </div>
               </div>
 
-              {filteredSoftware.length > 0 ? (
+              {/*{aiAnalysis && (*/}
+              {/*  <div className="mb-8 bg-white rounded-lg shadow p-6">*/}
+              {/*    <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Analysis</h3>*/}
+              {/*    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">*/}
+              {/*      <div>*/}
+              {/*        <h4 className="font-medium text-gray-700 mb-2">Key Features Needed:</h4>*/}
+              {/*        <ul className="list-disc pl-4 space-y-1">*/}
+              {/*          {aiAnalysis.features.map((feature: string, index: number) => (*/}
+              {/*            <li key={index} className="text-gray-600">{feature}</li>*/}
+              {/*          ))}*/}
+              {/*        </ul>*/}
+              {/*      </div>*/}
+              {/*      <div>*/}
+              {/*        <h4 className="font-medium text-gray-700 mb-2">Best For:</h4>*/}
+              {/*        <ul className="list-disc pl-4 space-y-1">*/}
+              {/*          {aiAnalysis.bestFor.map((user: string, index: number) => (*/}
+              {/*            <li key={index} className="text-gray-600">{user}</li>*/}
+              {/*          ))}*/}
+              {/*        </ul>*/}
+              {/*      </div>*/}
+              {/*      <div>*/}
+              {/*        <h4 className="font-medium text-gray-700 mb-2">Recommended Platforms:</h4>*/}
+              {/*        <ul className="list-disc pl-4 space-y-1">*/}
+              {/*          {aiAnalysis.platforms.map((platform: string, index: number) => (*/}
+              {/*            <li key={index} className="text-gray-600">{platform}</li>*/}
+              {/*          ))}*/}
+              {/*        </ul>*/}
+              {/*      </div>*/}
+              {/*    </div>*/}
+              {/*  </div>*/}
+              {/*)}*/}
+
+              {software.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredSoftware.map((sw) => (
+                  {software.map((sw) => (
                     <SoftwareCard key={sw.id} software={sw} />
                   ))}
                 </div>

@@ -19,24 +19,24 @@ export function Header() {
               <Info className="h-5 w-5 mr-1" />
               <span>About</span>
             </Link>
-            <a
-              href="https://rnviththagan.github.io/me"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              <Globe className="h-5 w-5 mr-1" />
-              <span>Portfolio</span>
-            </a>
-            <a
-              href="https://github.com/RNViththagan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              <Github className="h-5 w-5 mr-1" />
-              <span>GitHub</span>
-            </a>
+            {/*<a*/}
+            {/*  href="https://rnviththagan.github.io/me"*/}
+            {/*  target="_blank"*/}
+            {/*  rel="noopener noreferrer"*/}
+            {/*  className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"*/}
+            {/*>*/}
+            {/*  <Globe className="h-5 w-5 mr-1" />*/}
+            {/*  <span>Portfolio</span>*/}
+            {/*</a>*/}
+            {/*<a*/}
+            {/*  href="https://github.com/RNViththagan"*/}
+            {/*  target="_blank"*/}
+            {/*  rel="noopener noreferrer"*/}
+            {/*  className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"*/}
+            {/*>*/}
+            {/*  <Github className="h-5 w-5 mr-1" />*/}
+            {/*  <span>GitHub</span>*/}
+            {/*</a>*/}
           </div>
         </div>
       </div>
