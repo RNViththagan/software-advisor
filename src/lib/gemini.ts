@@ -9,17 +9,23 @@ export async function getSuggestions(input: string): Promise<string[]> {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // The new, corrected prompt for generating suggestions based on software tasks
-    const prompt = `Given this partial task description: "${input}",
-Suggest 5 software-related actions or steps that could help with this task.
-Each suggestion should focus on practical, software-related solutions to the problem.
-Return only the suggestions as a JSON array of strings. Ensure the suggestions are actionable and relevant to software tasks.`;
+    const prompt = `Given the following partial task description: "${input}",  
+Suggest 5 short, actionable completions or clarifications to help finish this description.  
+Each completion should help clarify the task and make it more specific or actionable, and should focus on software-related actions, tools, or steps.  
+Return only the suggestions as a JSON array of strings. Each suggestion should be concise, ideally a few words, helping to complete or refine the user's task description.`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response();
-    const text = await response.text();
+    console.log("result", result);
+    const match =
+      result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
+        /\[.*\]/s,
+      );
+    const suggestions = match ? JSON.parse(match[0]) : null;
 
-    // Parse and return the suggestions as JSON
-    const suggestions = JSON.parse(text);
+    if (!suggestions)
+      return res.status(500).json({ error: "Invalid JSON response from AI" });
+
+    console.log("suggestions", suggestions);
     return suggestions;
   } catch (error) {
     console.error("Error getting suggestions:", error);
