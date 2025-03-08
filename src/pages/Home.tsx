@@ -129,7 +129,7 @@ export function Home() {
                 <div className="relative">
                   <textarea
                     placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
-                    className="w-full h-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    className="p-6 w-full h-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                     value={taskDescription}
                     onChange={(e) => {
                       setTaskDescription(e.target.value);
