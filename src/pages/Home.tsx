@@ -1,35 +1,38 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Loader, Sparkles } from 'lucide-react';
-import { Software } from '../data/software';
-import { SoftwareCard } from '../components/SoftwareCard';
-import { getSuggestions, analyzeSoftwareNeeds } from '../lib/gemini';
-import debounce from 'lodash/debounce';
+import React, { useState, useEffect, useRef } from "react";
+import { Search, Loader, Sparkles } from "lucide-react";
+import { Software } from "../data/software";
+import { SoftwareCard } from "../components/SoftwareCard";
+import { getSuggestions, analyzeSoftwareNeeds } from "../lib/gemini";
+import debounce from "lodash/debounce";
 
 export function Home() {
   const [filters, setFilters] = useState({
-    category: 'all',
-    pricing: 'all',
-    platform: 'all'
+    category: "all",
+    pricing: "all",
+    platform: "all",
   });
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [taskDescription, setTaskDescription] = useState('');
-  const [descriptionSuggestions, setDescriptionSuggestions] = useState<string[]>([]);
-  const [showDescriptionSuggestions, setShowDescriptionSuggestions] = useState(false);
+  const [taskDescription, setTaskDescription] = useState("");
+  const [descriptionSuggestions, setDescriptionSuggestions] = useState<
+    string[]
+  >([]);
+  const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
+    useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
   const allPlatforms: any[] = ["Android", "iOS"];
-  const [software,setSoftware] = useState([]);
+  const [software, setSoftware] = useState([]);
 
   const debouncedGetSuggestions = useRef(
     debounce(async (input: string) => {
       const suggestions = await getSuggestions(input);
       setDescriptionSuggestions(suggestions);
-    }, 500)
+    }, 500),
   ).current;
 
   useEffect(() => {
@@ -42,21 +45,27 @@ export function Home() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setShowSuggestions(false);
       }
-      if (descriptionRef.current && !descriptionRef.current.contains(event.target as Node)) {
+      if (
+        descriptionRef.current &&
+        !descriptionRef.current.contains(event.target as Node)
+      ) {
         setShowDescriptionSuggestions(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSearch = async () => {
     if (!taskDescription) return;
-    
+
     setShowSuggestions(false);
     setShowDescriptionSuggestions(false);
     setIsLoading(true);
@@ -65,10 +74,9 @@ export function Home() {
     try {
       const analysis = await analyzeSoftwareNeeds(taskDescription);
       setAiAnalysis(analysis);
-      console.log("Analysic",analysis);
       setSoftware(analysis);
     } catch (error) {
-      console.error('Error analyzing needs:', error);
+      console.error("Error analyzing needs:", error);
     }
 
     setIsLoading(false);
@@ -107,7 +115,8 @@ export function Home() {
               Find Your Perfect Software
             </h2>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Describe your needs and we'll help you discover the best tools for your requirements.
+              Describe your needs and we'll help you discover the best tools for
+              your requirements.
             </p>
           </div>
 
@@ -124,26 +133,27 @@ export function Home() {
                     value={taskDescription}
                     onChange={(e) => {
                       setTaskDescription(e.target.value);
-                      setShowDescriptionSuggestions(true);
+                      setShowDescriptionSuggestions(false); // turn on
                     }}
-                    onFocus={() => setShowDescriptionSuggestions(true)}
+                    onFocus={() => setShowDescriptionSuggestions(false)} // turn on
                   />
-                  {showDescriptionSuggestions && descriptionSuggestions.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
-                      {descriptionSuggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                          onClick={() => {
-                            setTaskDescription(suggestion);
-                            setShowDescriptionSuggestions(false);
-                          }}
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  {showDescriptionSuggestions &&
+                    descriptionSuggestions.length > 0 && (
+                      <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                        {descriptionSuggestions.map((suggestion, index) => (
+                          <button
+                            key={index}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
+                            onClick={() => {
+                              setTaskDescription(suggestion);
+                              setShowDescriptionSuggestions(false);
+                            }}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                 </div>
               </div>
 
@@ -163,7 +173,9 @@ export function Home() {
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader className="w-8 h-8 text-blue-500 animate-spin" />
-              <span className="ml-3 text-lg text-gray-600">Analyzing your requirements...</span>
+              <span className="ml-3 text-lg text-gray-600">
+                Analyzing your requirements...
+              </span>
             </div>
           ) : (
             <>
@@ -180,26 +192,29 @@ export function Home() {
                           value={taskDescription}
                           onChange={(e) => {
                             setTaskDescription(e.target.value);
-                            setShowDescriptionSuggestions(true);
+                            setShowDescriptionSuggestions(true); // turn on
                           }}
-                          onFocus={() => setShowDescriptionSuggestions(true)}
+                          onFocus={() => setShowDescriptionSuggestions(false)} // turn on
                         />
-                        {showDescriptionSuggestions && descriptionSuggestions.length > 0 && (
-                          <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
-                            {descriptionSuggestions.map((suggestion, index) => (
-                              <button
-                                key={index}
-                                className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                                onClick={() => {
-                                  setTaskDescription(suggestion);
-                                  setShowDescriptionSuggestions(false);
-                                }}
-                              >
-                                {suggestion}
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {showDescriptionSuggestions &&
+                          descriptionSuggestions.length > 0 && (
+                            <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                              {descriptionSuggestions.map(
+                                (suggestion, index) => (
+                                  <button
+                                    key={index}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
+                                    onClick={() => {
+                                      setTaskDescription(suggestion);
+                                      setShowDescriptionSuggestions(false);
+                                    }}
+                                  >
+                                    {suggestion}
+                                  </button>
+                                ),
+                              )}
+                            </div>
+                          )}
                       </div>
                       <button
                         onClick={handleSearch}
@@ -210,61 +225,69 @@ export function Home() {
                     </div>
                   </div>
 
-                  <div className="relative" ref={searchRef}>
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Search className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Search within results..."
-                      className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={search}
-                      onChange={(e) => {
-                        setSearch(e.target.value);
-                        setShowSuggestions(true);
-                      }}
-                      onFocus={() => setShowSuggestions(true)}
-                    />
-                  </div>
+                  {/*<div className="relative" ref={searchRef}>*/}
+                  {/*  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">*/}
+                  {/*    <Search className="h-5 w-5 text-gray-400" />*/}
+                  {/*  </div>*/}
+                  {/*  <input*/}
+                  {/*    type="text"*/}
+                  {/*    placeholder="Search within results..."*/}
+                  {/*    className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
+                  {/*    value={search}*/}
+                  {/*    onChange={(e) => {*/}
+                  {/*      setSearch(e.target.value);*/}
+                  {/*      setShowSuggestions(true);*/}
+                  {/*    }}*/}
+                  {/*    onFocus={() => setShowSuggestions(true)}*/}
+                  {/*  />*/}
+                  {/*</div>*/}
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <select
-                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={filters.category}
-                      onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                    >
-                      <option value="all">All Categories</option>
-                      <option value="productivity">Productivity</option>
-                      <option value="development">Development</option>
-                      <option value="design">Design</option>
-                      <option value="communication">Communication</option>
-                      <option value="business">Business</option>
-                      <option value="multimedia">Multimedia</option>
-                    </select>
+                  {/*<div className="grid grid-cols-1 md:grid-cols-3 gap-4">*/}
+                  {/*  <select*/}
+                  {/*    className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
+                  {/*    value={filters.category}*/}
+                  {/*    onChange={(e) =>*/}
+                  {/*      setFilters({ ...filters, category: e.target.value })*/}
+                  {/*    }*/}
+                  {/*  >*/}
+                  {/*    <option value="all">All Categories</option>*/}
+                  {/*    <option value="productivity">Productivity</option>*/}
+                  {/*    <option value="development">Development</option>*/}
+                  {/*    <option value="design">Design</option>*/}
+                  {/*    <option value="communication">Communication</option>*/}
+                  {/*    <option value="business">Business</option>*/}
+                  {/*    <option value="multimedia">Multimedia</option>*/}
+                  {/*  </select>*/}
 
-                    <select
-                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={filters.pricing}
-                      onChange={(e) => setFilters({ ...filters, pricing: e.target.value })}
-                    >
-                      <option value="all">All Pricing Types</option>
-                      <option value="free">Free</option>
-                      <option value="freemium">Freemium</option>
-                      <option value="paid">Paid</option>
-                      <option value="subscription">Subscription</option>
-                    </select>
+                  {/*  <select*/}
+                  {/*    className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
+                  {/*    value={filters.pricing}*/}
+                  {/*    onChange={(e) =>*/}
+                  {/*      setFilters({ ...filters, pricing: e.target.value })*/}
+                  {/*    }*/}
+                  {/*  >*/}
+                  {/*    <option value="all">All Pricing Types</option>*/}
+                  {/*    <option value="free">Free</option>*/}
+                  {/*    <option value="freemium">Freemium</option>*/}
+                  {/*    <option value="paid">Paid</option>*/}
+                  {/*    <option value="subscription">Subscription</option>*/}
+                  {/*  </select>*/}
 
-                    <select
-                      className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      value={filters.platform}
-                      onChange={(e) => setFilters({ ...filters, platform: e.target.value })}
-                    >
-                      <option value="all">All Platforms</option>
-                      {allPlatforms.map(platform => (
-                        <option key={platform} value={platform}>{platform}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {/*  <select*/}
+                  {/*    className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
+                  {/*    value={filters.platform}*/}
+                  {/*    onChange={(e) =>*/}
+                  {/*      setFilters({ ...filters, platform: e.target.value })*/}
+                  {/*    }*/}
+                  {/*  >*/}
+                  {/*    <option value="all">All Platforms</option>*/}
+                  {/*    {allPlatforms.map((platform) => (*/}
+                  {/*      <option key={platform} value={platform}>*/}
+                  {/*        {platform}*/}
+                  {/*      </option>*/}
+                  {/*    ))}*/}
+                  {/*  </select>*/}
+                  {/*</div>*/}
                 </div>
               </div>
 
@@ -311,9 +334,12 @@ export function Home() {
                   <div className="mb-4">
                     <Search className="mx-auto h-12 w-12 text-gray-400" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No matching software found</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    No matching software found
+                  </h3>
                   <p className="text-gray-500">
-                    Try adjusting your search terms or filters to find more options.
+                    Try adjusting your search terms or filters to find more
+                    options.
                   </p>
                 </div>
               )}
