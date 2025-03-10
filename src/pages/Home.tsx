@@ -92,28 +92,6 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
 
     setIsLoading(false);
   };
-
-  // const filteredSoftware = software.filter(sw => {
-  //   const matchesSearch = !search ||
-  //     sw.name.toLowerCase().includes(search.toLowerCase()) ||
-  //     sw.description.toLowerCase().includes(search.toLowerCase()) ||
-  //     sw.features.some(f => f.toLowerCase().includes(search.toLowerCase())) ||
-  //     sw.bestFor.some(b => b.toLowerCase().includes(search.toLowerCase()));
-  //
-  //   const matchesCategory = filters.category === 'all' || sw.category === filters.category;
-  //   const matchesPricing = filters.pricing === 'all' || sw.pricing === filters.pricing;
-  //   const matchesPlatform = filters.platform === 'all' || sw.platforms.includes(filters.platform);
-  //
-  //   let matchesAiAnalysis = true;
-  //   if (aiAnalysis) {
-  //     matchesAiAnalysis = aiAnalysis.features.some((feature: string) =>
-  //       sw.features.some(f => f.toLowerCase().includes(feature.toLowerCase()))
-  //     );
-  //   }
-  //
-  //   return matchesSearch && matchesCategory && matchesPricing && matchesPlatform && matchesAiAnalysis;
-  // });
-
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
       {!hasSearched ? (
@@ -210,7 +188,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                           value={taskDescription}
                           onChange={(e) => {
                             setTaskDescription(e.target.value);
-                            setShowDescriptionSuggestions(true); // turn on
+                            setShowDescriptionSuggestions(false); // turn on
                           }}
                           onFocus={() => setShowDescriptionSuggestions(false)} // turn on
                           onKeyDown={(e) => {
@@ -248,104 +226,8 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                       </button>
                     </div>
                   </div>
-
-                  {/*<div className="relative" ref={searchRef}>*/}
-                  {/*  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">*/}
-                  {/*    <Search className="h-5 w-5 text-gray-400" />*/}
-                  {/*  </div>*/}
-                  {/*  <input*/}
-                  {/*    type="text"*/}
-                  {/*    placeholder="Search within results..."*/}
-                  {/*    className="pl-10 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
-                  {/*    value={search}*/}
-                  {/*    onChange={(e) => {*/}
-                  {/*      setSearch(e.target.value);*/}
-                  {/*      setShowSuggestions(true);*/}
-                  {/*    }}*/}
-                  {/*    onFocus={() => setShowSuggestions(true)}*/}
-                  {/*  />*/}
-                  {/*</div>*/}
-
-                  {/*<div className="grid grid-cols-1 md:grid-cols-3 gap-4">*/}
-                  {/*  <select*/}
-                  {/*    className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
-                  {/*    value={filters.category}*/}
-                  {/*    onChange={(e) =>*/}
-                  {/*      setFilters({ ...filters, category: e.target.value })*/}
-                  {/*    }*/}
-                  {/*  >*/}
-                  {/*    <option value="all">All Categories</option>*/}
-                  {/*    <option value="productivity">Productivity</option>*/}
-                  {/*    <option value="development">Development</option>*/}
-                  {/*    <option value="design">Design</option>*/}
-                  {/*    <option value="communication">Communication</option>*/}
-                  {/*    <option value="business">Business</option>*/}
-                  {/*    <option value="multimedia">Multimedia</option>*/}
-                  {/*  </select>*/}
-
-                  {/*  <select*/}
-                  {/*    className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
-                  {/*    value={filters.pricing}*/}
-                  {/*    onChange={(e) =>*/}
-                  {/*      setFilters({ ...filters, pricing: e.target.value })*/}
-                  {/*    }*/}
-                  {/*  >*/}
-                  {/*    <option value="all">All Pricing Types</option>*/}
-                  {/*    <option value="free">Free</option>*/}
-                  {/*    <option value="freemium">Freemium</option>*/}
-                  {/*    <option value="paid">Paid</option>*/}
-                  {/*    <option value="subscription">Subscription</option>*/}
-                  {/*  </select>*/}
-
-                  {/*  <select*/}
-                  {/*    className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"*/}
-                  {/*    value={filters.platform}*/}
-                  {/*    onChange={(e) =>*/}
-                  {/*      setFilters({ ...filters, platform: e.target.value })*/}
-                  {/*    }*/}
-                  {/*  >*/}
-                  {/*    <option value="all">All Platforms</option>*/}
-                  {/*    {allPlatforms.map((platform) => (*/}
-                  {/*      <option key={platform} value={platform}>*/}
-                  {/*        {platform}*/}
-                  {/*      </option>*/}
-                  {/*    ))}*/}
-                  {/*  </select>*/}
-                  {/*</div>*/}
                 </div>
               </div>
-
-              {/*{aiAnalysis && (*/}
-              {/*  <div className="mb-8 bg-white rounded-lg shadow p-6">*/}
-              {/*    <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Analysis</h3>*/}
-              {/*    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">*/}
-              {/*      <div>*/}
-              {/*        <h4 className="font-medium text-gray-700 mb-2">Key Features Needed:</h4>*/}
-              {/*        <ul className="list-disc pl-4 space-y-1">*/}
-              {/*          {aiAnalysis.features.map((feature: string, index: number) => (*/}
-              {/*            <li key={index} className="text-gray-600">{feature}</li>*/}
-              {/*          ))}*/}
-              {/*        </ul>*/}
-              {/*      </div>*/}
-              {/*      <div>*/}
-              {/*        <h4 className="font-medium text-gray-700 mb-2">Best For:</h4>*/}
-              {/*        <ul className="list-disc pl-4 space-y-1">*/}
-              {/*          {aiAnalysis.bestFor.map((user: string, index: number) => (*/}
-              {/*            <li key={index} className="text-gray-600">{user}</li>*/}
-              {/*          ))}*/}
-              {/*        </ul>*/}
-              {/*      </div>*/}
-              {/*      <div>*/}
-              {/*        <h4 className="font-medium text-gray-700 mb-2">Recommended Platforms:</h4>*/}
-              {/*        <ul className="list-disc pl-4 space-y-1">*/}
-              {/*          {aiAnalysis.platforms.map((platform: string, index: number) => (*/}
-              {/*            <li key={index} className="text-gray-600">{platform}</li>*/}
-              {/*          ))}*/}
-              {/*        </ul>*/}
-              {/*      </div>*/}
-              {/*    </div>*/}
-              {/*  </div>*/}
-              {/*)}*/}
 
               {software.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

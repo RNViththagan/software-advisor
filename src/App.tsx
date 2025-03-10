@@ -8,7 +8,7 @@ function App() {
   const [hasSearched, setHasSearched] = useState(false);
   // Function to reset the search state
   const resetSearch = () => {
-    setHasSearched(false); // Reset the state when the logo is clicked
+    setHasSearched(false);
   };
   return (
     <Router basename="/software-advisor">
