@@ -2,12 +2,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Software } from "../data/software.ts";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-
+const geminiModel = "gemini-2.0-flash";
 export async function getSuggestions(input: string): Promise<string[]> {
   if (!input.trim()) return []; // Return empty array if input is empty or whitespace
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: geminiModel });
 
     const prompt = `Given the following partial task description: "${input}",  
 Suggest 5 short, actionable completions or clarifications to help finish this description.  
@@ -35,7 +35,7 @@ Return only the suggestions as a JSON array of strings. Each suggestion should b
 
 export async function analyzeSoftwareNeeds(description: string): Promise<any> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: geminiModel });
     const prompt = `
 Generate a structured JSON output for software recommendations based on the given task description:  
 '${description}'
