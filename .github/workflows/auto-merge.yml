@@ -8,23 +8,25 @@ on:
 jobs:
   merge:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # ✅ Grant write access for pushing changes
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Ensure full history for merge operations
+          fetch-depth: 0  # Ensure full history for merge
 
       - name: Get last commit message on Develop
         id: last_commit
         run: |
           LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
-          echo "Last commit message: $LAST_COMMIT_MSG"
           echo "commit_message=$LAST_COMMIT_MSG" >> $GITHUB_ENV
 
       - name: Set up Git
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Checkout main branch
         run: |
@@ -37,16 +39,19 @@ jobs:
 
           if [[ "$COMMIT_MSG_LOWER" == *"ready to deploy"* ]]; then
             echo "Commit message matches, attempting merge."
-
-            # Merge and detect conflicts
             if git merge origin/Develop --no-ff -m "Merge Develop into main"; then
-              git push origin main
-              echo "Merge successful, pushed to main."
+              echo "Merge successful."
             else
-              echo "Merge conflicts detected. Stopping merge."
+              echo "Merge conflicts detected. Aborting."
               git merge --abort
               exit 1
             fi
           else
             echo "Commit message does not match, skipping merge."
           fi
+
+      - name: Push changes to main
+        run: |
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Authenticate using GitHub token
