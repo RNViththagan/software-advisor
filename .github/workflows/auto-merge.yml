@@ -3,19 +3,19 @@ name: Auto Merge Develop to Main
 on:
   push:
     branches:
-      - Develop  # Trigger action on push to Develop
+      - Develop
 
 jobs:
   merge:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # ✅ Grant write access for pushing changes
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Ensure full history for merge
+          fetch-depth: 0
 
       - name: Get last commit message on Develop
         id: last_commit
@@ -23,10 +23,10 @@ jobs:
           LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
           echo "commit_message=$LAST_COMMIT_MSG" >> $GITHUB_ENV
 
-      - name: Set up Git
+      - name: Set up Git with Your Credentials
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "RNViththagan"
+          git config user.email "viththagan1999@gmail.com" 
 
       - name: Checkout main branch
         run: |
@@ -54,4 +54,4 @@ jobs:
         run: |
           git push origin main
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # ✅ Authenticate using GitHub token
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
