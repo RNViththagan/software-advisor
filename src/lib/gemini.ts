@@ -3,37 +3,71 @@ import { Software } from "../data/software.ts";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 const geminiModel = "gemini-2.0-flash";
+
 export async function getSuggestions(input: string): Promise<string[]> {
-  if (!input.trim()) return []; // Return empty array if input is empty or whitespace
+  if (!input.trim()) return { completed_text: input, suggestions: [] };
 
   try {
     const model = genAI.getGenerativeModel({ model: geminiModel });
 
-    const prompt = `Given the following partial task description: "${input}",  
-Suggest 5 short, actionable completions or clarifications to help finish this description.  
-Each completion should help clarify the task and make it more specific or actionable, and should focus on software-related actions, tools, or steps.  
-Return only the suggestions as a JSON array of strings. Each suggestion should be concise, ideally a few words, helping to complete or refine the user's task description.`;
+    // AI prompt ensuring only the missing words are suggested
+    const prompt = `
+      You are an AI assistant specializing in software-related text completion.
+      Your job is to:
+        1. **Correct any spelling mistakes** in the provided input while keeping the meaning intact.  
+        2. **Preserve the corrected input exactly as it is.**  
+        3. **Only suggest the missing words or phrases** to complete the sentence.  
+        4. **Ensure the completion remains software-specific and relevant.**  
+        5. **Generate three alternative completions, all strictly software-related.**  
+        6. **Provide a structured JSON output.** 
+
+      ### **Rules:**
+      - Do not modify or reword the input.
+      - Only append the missing words to complete the sentence meaningfully.
+      - Keep the response structured and concise.
+
+      ### **User Input:**
+      "${input}"
+
+      **Expected JSON Output:**
+      {
+        "completed_text": "User input + suggested completion",
+        "suggestions": [
+          "User input + Alternative completion 1",
+          "User input + Alternative completion 2",
+          "User input + Alternative completion 3"
+        ]
+      }
+    `;
 
     const result = await model.generateContent(prompt);
 
-    const match =
-      result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
-        /\[.*\]/s,
-      );
-    const suggestions = match ? JSON.parse(match[0]) : null;
+    const rawText = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const match = rawText?.match(/```json\s*([\s\S]*?)\s*```/);
 
-    if (!suggestions) {
-      console.error("Invalid JSON response from AI");
-      return []; // Return empty array if no valid suggestions
+    const jsonText = match ? match[1] : rawText; // Extract only the JSON part
+
+    try {
+      const data = jsonText ? JSON.parse(jsonText) : null;
+      //console.log("data ", data);
+
+      if (!data || !data.completed_text || !Array.isArray(data.suggestions)) {
+        //console.error("Invalid JSON response from AI");
+        return { completed_text: input, suggestions: [] };
+      }
+
+      return data;
+    } catch (error) {
+      //console.error("Error parsing JSON:", error);
+      return { completed_text: input, suggestions: [] };
     }
-    return suggestions;
   } catch (error) {
-    console.error("Error getting suggestions:", error);
-    return []; // Return empty array in case of error
+    //console.error("Error generating completion:", error);
+    return { completed_text: input, suggestions: [] };
   }
 }
 
-export async function analyzeSoftwareNeeds(description: string): Promise<any> {
+export async function getSoftware(description: string): Promise<any> {
   try {
     const model = genAI.getGenerativeModel({ model: geminiModel });
     const prompt = `

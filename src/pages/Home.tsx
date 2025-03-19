@@ -1,9 +1,138 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Search, Loader, Sparkles } from "lucide-react";
-import { Software } from "../data/software";
+import React, { useState, useEffect } from "react";
+import {
+  Search,
+  Loader,
+  Sparkles,
+  Clock,
+  Database,
+  Filter,
+} from "lucide-react";
 import { SoftwareCard } from "../components/SoftwareCard";
-import { getSuggestions, analyzeSoftwareNeeds } from "../lib/gemini";
+import { getSuggestions, getSoftware } from "../lib/gemini";
 import debounce from "lodash/debounce";
+
+interface TaskDescriptionInputProps {
+  taskDescription: string;
+  setTaskDescription: React.Dispatch<React.SetStateAction<string>>;
+  handleSearch: () => void;
+  descriptionSuggestions: string[];
+  layout?: "default" | "compact";
+}
+
+interface Filters {
+  platform: string;
+  pricing: string;
+}
+
+const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
+  taskDescription,
+  setTaskDescription,
+  handleSearch,
+  descriptionSuggestions,
+  layout = "default",
+}) => {
+  const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
+    useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  return (
+    <div
+      className={`${layout === "default" ? "" : "mb-8"} bg-white rounded-lg shadow p-6`}
+    >
+      <div className={layout === "default" ? "mb-6" : "grid grid-cols-1 gap-6"}>
+        <div>
+          <label className="block text-lg font-medium text-gray-900 mb-2">
+            {layout === "default"
+              ? "Describe your task or requirements"
+              : "Task Description"}
+          </label>
+          <div className={layout === "default" ? "relative" : "flex gap-4"}>
+            <div
+              className={layout === "compact" ? "relative flex-1" : "relative"}
+            >
+              <textarea
+                placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
+                className={`${
+                  layout === "default" ? "p-6 h-32" : "p-2 h-20"
+                } w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500`}
+                value={taskDescription}
+                onChange={(e) => {
+                  setTaskDescription(e.target.value);
+                  setShowDescriptionSuggestions(true);
+                  setSelectedIndex(-1);
+                }}
+                onFocus={() => setShowDescriptionSuggestions(true)}
+                onBlur={() =>
+                  setTimeout(() => setShowDescriptionSuggestions(false), 200)
+                }
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                      prev < descriptionSuggestions.length - 1 ? prev + 1 : 0,
+                    );
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                      prev > 0 ? prev - 1 : descriptionSuggestions.length - 1,
+                    );
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (selectedIndex >= 0) {
+                      setSelectedIndex(-1);
+                      setTaskDescription(descriptionSuggestions[selectedIndex]);
+                      setShowDescriptionSuggestions(false);
+                    } else if (taskDescription.trim()) {
+                      handleSearch();
+                    }
+                  }
+                }}
+              />
+              {showDescriptionSuggestions &&
+                descriptionSuggestions.length > 0 && (
+                  <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                    {descriptionSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md ${
+                          selectedIndex === index ? "bg-gray-200" : ""
+                        }`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setTaskDescription(suggestion);
+                          setShowDescriptionSuggestions(false);
+                          setSelectedIndex(-1);
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+            </div>
+            {layout === "compact" ? (
+              <button
+                onClick={handleSearch}
+                className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      {layout === "default" ? (
+        <button
+          onClick={handleSearch}
+          disabled={!taskDescription.trim()}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Search className="w-5 h-5 mr-2" />
+          Find Software
+        </button>
+      ) : null}
+    </div>
+  );
+};
 
 interface HomeProps {
   hasSearched: boolean;
@@ -11,87 +140,73 @@ interface HomeProps {
 }
 
 export function Home({ hasSearched, setHasSearched }: HomeProps) {
-  const [filters, setFilters] = useState({
-    category: "all",
-    pricing: "all",
-    platform: "all",
-  });
-  const [search, setSearch] = useState("");
-  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [taskDescription, setTaskDescription] = useState("");
+  const [taskDescription, setTaskDescription] = useState<string>("");
   const [descriptionSuggestions, setDescriptionSuggestions] = useState<
     string[]
   >([]);
-  const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
-    useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLDivElement>(null);
-  const allPlatforms: any[] = ["Android", "iOS"];
-  const [software, setSoftware] = useState([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [software, setSoftware] = useState<any[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    platform: "all",
+    pricing: "all",
+  });
+  const [searchTime, setSearchTime] = useState<number>(0);
 
-  // Reset taskDescription when hasSearched becomes false
-  useEffect(() => {
-    if (!hasSearched) {
-      setTaskDescription(""); // Reset taskDescription to empty
-    }
-  }, [hasSearched]); // Depend on hasSearched, so it runs whenever it changes
-
-  const debouncedGetSuggestions = useRef(
-    debounce(async (input: string) => {
-      const suggestions = await getSuggestions(input);
-      setDescriptionSuggestions(suggestions);
-    }, 500),
-  ).current;
+  const uniquePlatforms = Array.from(
+    new Set(software.flatMap((sw) => sw.platforms)),
+  ).sort();
+  const uniquePricing = Array.from(
+    new Set(software.map((sw) => sw.pricing)),
+  ).sort();
 
   useEffect(() => {
-    if (taskDescription.length >= 3) {
-      debouncedGetSuggestions(taskDescription);
-    } else {
-      setDescriptionSuggestions([]);
-    }
+    const fetchSuggestions = debounce(async () => {
+      if (taskDescription.length >= 3) {
+        try {
+          const suggestions = await getSuggestions(taskDescription);
+          setDescriptionSuggestions(suggestions?.suggestions ?? []);
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+        }
+      } else {
+        setDescriptionSuggestions([]);
+      }
+    }, 500); // Wait 500ms before making the API request
+
+    fetchSuggestions();
+
+    return () => fetchSuggestions.cancel(); // Cleanup to prevent unnecessary calls
   }, [taskDescription]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-      if (
-        descriptionRef.current &&
-        !descriptionRef.current.contains(event.target as Node)
-      ) {
-        setShowDescriptionSuggestions(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleSearch = async () => {
     if (!taskDescription) return;
-
-    setShowSuggestions(false);
-    setShowDescriptionSuggestions(false);
     setIsLoading(true);
     setHasSearched(true);
 
+    const startTime = performance.now();
     try {
-      const analysis = await analyzeSoftwareNeeds(taskDescription);
-      setAiAnalysis(analysis);
-      setSoftware(analysis);
+      const results = await getSoftware(taskDescription);
+      setSoftware(results);
     } catch (error) {
-      console.error("Error analyzing needs:", error);
+      console.error("Error Fetching Software:", error);
     }
+    const endTime = performance.now();
+    setSearchTime(endTime - startTime);
 
     setIsLoading(false);
   };
+
+  const filteredSoftware = software.filter((sw) => {
+    const matchesPlatform =
+      filters.platform === "all" || sw.platforms.includes(filters.platform);
+    const matchesPricing =
+      filters.pricing === "all" || sw.pricing === filters.pricing;
+
+    return matchesPlatform && matchesPricing;
+  });
+
+  const isFiltered = filters.platform !== "all" || filters.pricing !== "all";
+
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
       {!hasSearched ? (
@@ -110,57 +225,13 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
           </div>
 
           <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="mb-6" ref={descriptionRef}>
-                <label className="block text-lg font-medium text-gray-900 mb-2">
-                  Describe your task or requirements
-                </label>
-                <div className="relative">
-                  <textarea
-                    placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
-                    className="p-6 w-full h-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    value={taskDescription}
-                    onChange={(e) => {
-                      setTaskDescription(e.target.value);
-                      setShowDescriptionSuggestions(false); // turn on
-                    }}
-                    onFocus={() => setShowDescriptionSuggestions(false)} // turn on
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && taskDescription.trim()) {
-                        e.preventDefault(); // Prevent the default behavior (line break)
-                        handleSearch(); // Trigger the search function
-                      }
-                    }}
-                  />
-                  {showDescriptionSuggestions &&
-                    descriptionSuggestions.length > 0 && (
-                      <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
-                        {descriptionSuggestions.map((suggestion, index) => (
-                          <button
-                            key={index}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                            onClick={() => {
-                              setTaskDescription(suggestion);
-                              setShowDescriptionSuggestions(false);
-                            }}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                </div>
-              </div>
-
-              <button
-                onClick={handleSearch}
-                disabled={!taskDescription.trim()}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Search className="w-5 h-5 mr-2" />
-                Find Software
-              </button>
-            </div>
+            <TaskDescriptionInput
+              taskDescription={taskDescription}
+              setTaskDescription={setTaskDescription}
+              handleSearch={handleSearch}
+              descriptionSuggestions={descriptionSuggestions}
+              layout="default"
+            />
           </div>
         </>
       ) : (
@@ -174,64 +245,102 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
             </div>
           ) : (
             <>
+              <TaskDescriptionInput
+                taskDescription={taskDescription}
+                setTaskDescription={setTaskDescription}
+                handleSearch={handleSearch}
+                descriptionSuggestions={descriptionSuggestions}
+                layout="compact"
+              />
+
+              {/* Filters Section with Results Summary */}
               <div className="mb-8 bg-white rounded-lg shadow p-6">
-                <div className="grid grid-cols-1 gap-6">
-                  <div ref={descriptionRef}>
-                    <label className="block text-lg font-medium text-gray-900 mb-2">
-                      Task Description
-                    </label>
-                    <div className="flex gap-4">
-                      <div className="relative flex-1">
-                        <textarea
-                          placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
-                          className="p-2 w-full h-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={taskDescription}
-                          onChange={(e) => {
-                            setTaskDescription(e.target.value);
-                            setShowDescriptionSuggestions(false); // turn on
-                          }}
-                          onFocus={() => setShowDescriptionSuggestions(false)} // turn on
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && taskDescription.trim()) {
-                              e.preventDefault(); // Prevent the default behavior (line break)
-                              handleSearch(); // Trigger the search function
-                            }
-                          }}
-                        />
-                        {showDescriptionSuggestions &&
-                          descriptionSuggestions.length > 0 && (
-                            <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
-                              {descriptionSuggestions.map(
-                                (suggestion, index) => (
-                                  <button
-                                    key={index}
-                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                                    onClick={() => {
-                                      setTaskDescription(suggestion);
-                                      setShowDescriptionSuggestions(false);
-                                    }}
-                                  >
-                                    {suggestion}
-                                  </button>
-                                ),
-                              )}
-                            </div>
-                          )}
-                      </div>
-                      <button
-                        onClick={handleSearch}
-                        className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                      >
-                        <Search className="w-5 h-5" />
-                      </button>
+                {/* Results Summary */}
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center text-gray-600">
+                      <Database className="w-5 h-5 mr-2 text-blue-500" />
+                      <span>
+                        Found{" "}
+                        <span className="font-semibold text-gray-900">
+                          {software.length}
+                        </span>{" "}
+                        results
+                        {isFiltered && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <Filter className="w-4 h-4 inline mr-1 text-purple-500" />
+                            <span>
+                              Showing{" "}
+                              <span className="font-semibold text-gray-900">
+                                {filteredSoftware.length}
+                              </span>
+                            </span>
+                          </>
+                        )}
+                      </span>
                     </div>
+                    <div className="flex items-center text-gray-600">
+                      <Clock className="w-5 h-5 mr-2 text-green-500" />
+                      <span>
+                        Search completed in{" "}
+                        <span className="font-semibold text-gray-900">
+                          {(searchTime / 1000).toFixed(2)}
+                        </span>{" "}
+                        seconds
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Filters
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Platform
+                    </label>
+                    <select
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={filters.platform}
+                      onChange={(e) =>
+                        setFilters({ ...filters, platform: e.target.value })
+                      }
+                    >
+                      <option value="all">All Platforms</option>
+                      {uniquePlatforms.map((platform) => (
+                        <option key={platform} value={platform}>
+                          {platform}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pricing
+                    </label>
+                    <select
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={filters.pricing}
+                      onChange={(e) =>
+                        setFilters({ ...filters, pricing: e.target.value })
+                      }
+                    >
+                      <option value="all">All Pricing Types</option>
+                      {uniquePricing.map((pricing) => (
+                        <option key={pricing} value={pricing}>
+                          {pricing}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
 
-              {software.length > 0 ? (
+              {filteredSoftware.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {software.map((sw) => (
+                  {filteredSoftware.map((sw) => (
                     <SoftwareCard key={sw.id} software={sw} />
                   ))}
                 </div>
