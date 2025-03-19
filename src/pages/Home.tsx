@@ -158,7 +158,11 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
   const uniquePricing = Array.from(
     new Set(software.map((sw) => sw.pricing)),
   ).sort();
-
+  useEffect(() => {
+    if (!hasSearched) {
+      setTaskDescription(""); // Reset taskDescription to empty
+    }
+  }, [hasSearched]);
   useEffect(() => {
     const fetchSuggestions = debounce(async () => {
       if (taskDescription.length >= 3) {
