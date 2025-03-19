@@ -160,7 +160,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
   ).sort();
   useEffect(() => {
     if (!hasSearched) {
-      setTaskDescription(""); // Reset taskDescription to empty
+      setTaskDescription("");
     }
   }, [hasSearched]);
   useEffect(() => {
@@ -175,7 +175,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
       } else {
         setDescriptionSuggestions([]);
       }
-    }, 500); // Wait 500ms before making the API request
+    }, 500);
 
     fetchSuggestions();
 
