@@ -11,13 +11,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Ensure full history for merge operations
 
       - name: Get last commit message on Develop
         id: last_commit
         run: |
           LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
           echo "Last commit message: $LAST_COMMIT_MSG"
-          echo "::set-output name=commit_message::$LAST_COMMIT_MSG"
+          echo "commit_message=$LAST_COMMIT_MSG" >> $GITHUB_ENV
 
       - name: Set up Git
         run: |
@@ -31,16 +33,20 @@ jobs:
 
       - name: Merge Develop into main (if commit message matches)
         run: |
-          # Convert commit message to lowercase for case-insensitive comparison
-          COMMIT_MSG_LOWER=$(echo "${{ steps.last_commit.outputs.commit_message }}" | tr '[:upper:]' '[:lower:]')
-          
+          COMMIT_MSG_LOWER=$(echo "$commit_message" | tr '[:upper:]' '[:lower:]')
+
           if [[ "$COMMIT_MSG_LOWER" == *"ready to deploy"* ]]; then
-            echo "Commit message matches, merging Develop into main."
-            git merge origin/Develop --no-ff --allow-unrelated-histories -m "Merge Develop into main"
-            # Attempt the merge and capture the result
-            git merge origin/Develop --no-ff -m "Merge Develop into main" || { echo "Merge conflicts detected, skipping push."; exit 1; }
-            
-            git push origin main
+            echo "Commit message matches, attempting merge."
+
+            # Merge and detect conflicts
+            if git merge origin/Develop --no-ff -m "Merge Develop into main"; then
+              git push origin main
+              echo "Merge successful, pushed to main."
+            else
+              echo "Merge conflicts detected. Stopping merge."
+              git merge --abort
+              exit 1
+            fi
           else
             echo "Commit message does not match, skipping merge."
           fi
