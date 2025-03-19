@@ -42,30 +42,27 @@ export async function getSuggestions(input: string): Promise<string[]> {
 
     const result = await model.generateContent(prompt);
 
-    // Extract JSON response safely
     const rawText = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    // Remove Markdown code block if present
     const match = rawText?.match(/```json\s*([\s\S]*?)\s*```/);
 
     const jsonText = match ? match[1] : rawText; // Extract only the JSON part
 
     try {
       const data = jsonText ? JSON.parse(jsonText) : null;
-      console.log("data ", data);
+      //console.log("data ", data);
 
       if (!data || !data.completed_text || !Array.isArray(data.suggestions)) {
-        console.error("Invalid JSON response from AI");
+        //console.error("Invalid JSON response from AI");
         return { completed_text: input, suggestions: [] };
       }
 
       return data;
     } catch (error) {
-      console.error("Error parsing JSON:", error);
+      //console.error("Error parsing JSON:", error);
       return { completed_text: input, suggestions: [] };
     }
   } catch (error) {
-    console.error("Error generating completion:", error);
+    //console.error("Error generating completion:", error);
     return { completed_text: input, suggestions: [] };
   }
 }
