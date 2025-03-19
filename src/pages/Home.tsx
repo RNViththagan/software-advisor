@@ -4,6 +4,92 @@ import { SoftwareCard } from "../components/SoftwareCard";
 import { getSuggestions, getSoftware } from "../lib/gemini";
 import debounce from "lodash/debounce";
 
+const TaskDescriptionInput = ({
+  taskDescription,
+  setTaskDescription,
+  handleSearch,
+  descriptionSuggestions,
+  layout = "default", // "default" or "compact"
+}) => {
+  const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
+    useState(false);
+
+  return (
+    <div
+      className={` ${layout === "default" ? "" : "mb-8"} bg-white rounded-lg shadow p-6`}
+    >
+      <div className={layout === "default" ? "mb-6" : "grid grid-cols-1 gap-6"}>
+        <div>
+          <label className="block text-lg font-medium text-gray-900 mb-2">
+            {layout === "default"
+              ? "Describe your task or requirements"
+              : "Task Description"}
+          </label>
+          <div className={layout === "default" ? "relative" : "flex gap-4"}>
+            <div
+              className={layout === "compact" ? "relative flex-1" : "relative"}
+            >
+              <textarea
+                placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
+                className={`${
+                  layout === "default" ? "p-6 h-32" : "p-2 h-20"
+                } w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500`}
+                value={taskDescription}
+                onChange={(e) => {
+                  setTaskDescription(e.target.value);
+                  setShowDescriptionSuggestions(true);
+                }}
+                onFocus={() => setShowDescriptionSuggestions(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && taskDescription.trim()) {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+              />
+              {showDescriptionSuggestions &&
+                descriptionSuggestions.length > 0 && (
+                  <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
+                    {descriptionSuggestions.map((suggestion, index) => (
+                      <button
+                        key={index}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
+                        onClick={() => {
+                          setTaskDescription(suggestion);
+                          setShowDescriptionSuggestions(false);
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+            </div>
+            {layout === "compact" ? (
+              <button
+                onClick={handleSearch}
+                className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      {layout === "default" ? (
+        <button
+          onClick={handleSearch}
+          disabled={!taskDescription.trim()}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Search className="w-5 h-5 mr-2" />
+          Find Software
+        </button>
+      ) : null}
+    </div>
+  );
+};
+
 interface HomeProps {
   hasSearched: boolean;
   setHasSearched: React.Dispatch<React.SetStateAction<boolean>>;
@@ -75,57 +161,13 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
           </div>
 
           <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="mb-6" ref={descriptionRef}>
-                <label className="block text-lg font-medium text-gray-900 mb-2">
-                  Describe your task or requirements
-                </label>
-                <div className="relative">
-                  <textarea
-                    placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
-                    className="p-6 w-full h-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    value={taskDescription}
-                    onChange={(e) => {
-                      setTaskDescription(e.target.value);
-                      setShowDescriptionSuggestions(true); // turn on
-                    }}
-                    onFocus={() => setShowDescriptionSuggestions(true)} // turn on
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && taskDescription.trim()) {
-                        e.preventDefault(); // Prevent the default behavior (line break)
-                        handleSearch(); // Trigger the search function
-                      }
-                    }}
-                  />
-                  {showDescriptionSuggestions &&
-                    descriptionSuggestions.length > 0 && (
-                      <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
-                        {descriptionSuggestions.map((suggestion, index) => (
-                          <button
-                            key={index}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                            onClick={() => {
-                              setTaskDescription(suggestion);
-                              setShowDescriptionSuggestions(false);
-                            }}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                </div>
-              </div>
-
-              <button
-                onClick={handleSearch}
-                disabled={!taskDescription.trim()}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Search className="w-5 h-5 mr-2" />
-                Find Software
-              </button>
-            </div>
+            <TaskDescriptionInput
+              taskDescription={taskDescription}
+              setTaskDescription={setTaskDescription}
+              handleSearch={handleSearch}
+              descriptionSuggestions={descriptionSuggestions}
+              layout="default" // or "compact"
+            />
           </div>
         </>
       ) : (
@@ -139,60 +181,13 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
             </div>
           ) : (
             <>
-              <div className="mb-8 bg-white rounded-lg shadow p-6">
-                <div className="grid grid-cols-1 gap-6">
-                  <div ref={descriptionRef}>
-                    <label className="block text-lg font-medium text-gray-900 mb-2">
-                      Task Description
-                    </label>
-                    <div className="flex gap-4">
-                      <div className="relative flex-1">
-                        <textarea
-                          placeholder="e.g., I need to edit videos for YouTube, with color correction and audio editing capabilities..."
-                          className="p-2 w-full h-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                          value={taskDescription}
-                          onChange={(e) => {
-                            setTaskDescription(e.target.value);
-                            setShowDescriptionSuggestions(true); // turn on
-                          }}
-                          onFocus={() => setShowDescriptionSuggestions(true)} // turn on
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && taskDescription.trim()) {
-                              e.preventDefault(); // Prevent the default behavior (line break)
-                              handleSearch(); // Trigger the search function
-                            }
-                          }}
-                        />
-                        {showDescriptionSuggestions &&
-                          descriptionSuggestions.length > 0 && (
-                            <div className="absolute z-20 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200">
-                              {descriptionSuggestions.map(
-                                (suggestion, index) => (
-                                  <button
-                                    key={index}
-                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                                    onClick={() => {
-                                      setTaskDescription(suggestion);
-                                      setShowDescriptionSuggestions(true);
-                                    }}
-                                  >
-                                    {suggestion}
-                                  </button>
-                                ),
-                              )}
-                            </div>
-                          )}
-                      </div>
-                      <button
-                        onClick={handleSearch}
-                        className="px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
-                      >
-                        <Search className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <TaskDescriptionInput
+                taskDescription={taskDescription}
+                setTaskDescription={setTaskDescription}
+                handleSearch={handleSearch}
+                descriptionSuggestions={descriptionSuggestions}
+                layout="compact" // or "compact"
+              />
 
               {software.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
