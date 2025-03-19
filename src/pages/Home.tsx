@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, Loader, Sparkles } from "lucide-react";
-import { Software } from "../data/software";
 import { SoftwareCard } from "../components/SoftwareCard";
-import { getSuggestions, analyzeSoftwareNeeds } from "../lib/gemini";
+import { getSuggestions, getSoftware } from "../lib/gemini";
 import debounce from "lodash/debounce";
 
 interface HomeProps {
@@ -11,14 +10,6 @@ interface HomeProps {
 }
 
 export function Home({ hasSearched, setHasSearched }: HomeProps) {
-  const [filters, setFilters] = useState({
-    category: "all",
-    pricing: "all",
-    platform: "all",
-  });
-  const [search, setSearch] = useState("");
-  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [taskDescription, setTaskDescription] = useState("");
   const [descriptionSuggestions, setDescriptionSuggestions] = useState<
     string[]
@@ -26,10 +17,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
   const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
     useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [aiAnalysis, setAiAnalysis] = useState<any>(null);
-  const searchRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
-  const allPlatforms: any[] = ["Android", "iOS"];
   const [software, setSoftware] = useState([]);
 
   // Reset taskDescription when hasSearched becomes false
@@ -42,7 +30,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
   const debouncedGetSuggestions = useRef(
     debounce(async (input: string) => {
       const suggestions = await getSuggestions(input);
-      setDescriptionSuggestions(suggestions);
+      setDescriptionSuggestions(suggestions?.suggestions);
     }, 500),
   ).current;
 
@@ -54,40 +42,17 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
     }
   }, [taskDescription]);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-      if (
-        descriptionRef.current &&
-        !descriptionRef.current.contains(event.target as Node)
-      ) {
-        setShowDescriptionSuggestions(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
   const handleSearch = async () => {
     if (!taskDescription) return;
-
-    setShowSuggestions(false);
     setShowDescriptionSuggestions(false);
     setIsLoading(true);
     setHasSearched(true);
 
     try {
-      const analysis = await analyzeSoftwareNeeds(taskDescription);
-      setAiAnalysis(analysis);
-      setSoftware(analysis);
+      const software = await getSoftware(taskDescription);
+      setSoftware(software);
     } catch (error) {
-      console.error("Error analyzing needs:", error);
+      console.error("Error Fetching Software:", error);
     }
 
     setIsLoading(false);
@@ -122,9 +87,9 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                     value={taskDescription}
                     onChange={(e) => {
                       setTaskDescription(e.target.value);
-                      setShowDescriptionSuggestions(false); // turn on
+                      setShowDescriptionSuggestions(true); // turn on
                     }}
-                    onFocus={() => setShowDescriptionSuggestions(false)} // turn on
+                    onFocus={() => setShowDescriptionSuggestions(true)} // turn on
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && taskDescription.trim()) {
                         e.preventDefault(); // Prevent the default behavior (line break)
@@ -188,9 +153,9 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                           value={taskDescription}
                           onChange={(e) => {
                             setTaskDescription(e.target.value);
-                            setShowDescriptionSuggestions(false); // turn on
+                            setShowDescriptionSuggestions(true); // turn on
                           }}
-                          onFocus={() => setShowDescriptionSuggestions(false)} // turn on
+                          onFocus={() => setShowDescriptionSuggestions(true)} // turn on
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && taskDescription.trim()) {
                               e.preventDefault(); // Prevent the default behavior (line break)
@@ -208,7 +173,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                                     className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
                                     onClick={() => {
                                       setTaskDescription(suggestion);
-                                      setShowDescriptionSuggestions(false);
+                                      setShowDescriptionSuggestions(true);
                                     }}
                                   >
                                     {suggestion}
