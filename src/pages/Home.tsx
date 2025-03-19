@@ -1,10 +1,14 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Search, Loader, Sparkles } from "lucide-react";
-// @ts-ignore
-import SoftwareInterface from "../data/software.ts";
+import React, { useState, useEffect } from "react";
+import {
+  Search,
+  Loader,
+  Sparkles,
+  Clock,
+  Database,
+  Filter,
+} from "lucide-react";
 import { SoftwareCard } from "../components/SoftwareCard";
 import { getSuggestions, getSoftware } from "../lib/gemini";
-import debounce from "lodash/debounce";
 
 interface TaskDescriptionInputProps {
   taskDescription: string;
@@ -12,6 +16,11 @@ interface TaskDescriptionInputProps {
   handleSearch: () => void;
   descriptionSuggestions: string[];
   layout?: "default" | "compact";
+}
+
+interface Filters {
+  platform: string;
+  pricing: string;
 }
 
 const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
@@ -26,7 +35,7 @@ const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
 
   return (
     <div
-      className={` ${layout === "default" ? "" : "mb-8"} bg-white rounded-lg shadow p-6`}
+      className={`${layout === "default" ? "" : "mb-8"} bg-white rounded-lg shadow p-6`}
     >
       <div className={layout === "default" ? "mb-6" : "grid grid-cols-1 gap-6"}>
         <div>
@@ -111,25 +120,27 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
     string[]
   >([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [software, setSoftware] = useState<SoftwareInterface[]>([]);
+  const [software, setSoftware] = useState<any[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    platform: "all",
+    pricing: "all",
+  });
+  const [searchTime, setSearchTime] = useState<number>(0);
 
-  // Reset taskDescription when hasSearched becomes false
-  useEffect(() => {
-    if (!hasSearched) {
-      setTaskDescription("");
-    }
-  }, [hasSearched]);
-
-  const debouncedGetSuggestions = useRef(
-    debounce(async (input: string) => {
-      const suggestions = await getSuggestions(input);
-      setDescriptionSuggestions(suggestions?.suggestions ?? []);
-    }, 500),
-  ).current;
+  const uniquePlatforms = Array.from(
+    new Set(software.flatMap((sw) => sw.platforms)),
+  ).sort();
+  const uniquePricing = Array.from(
+    new Set(software.map((sw) => sw.pricing)),
+  ).sort();
 
   useEffect(() => {
     if (taskDescription.length >= 3) {
-      debouncedGetSuggestions(taskDescription);
+      const getAutocompleteSuggestions = async () => {
+        const suggestions = await getSuggestions(taskDescription);
+        setDescriptionSuggestions(suggestions?.suggestions ?? []);
+      };
+      getAutocompleteSuggestions();
     } else {
       setDescriptionSuggestions([]);
     }
@@ -140,15 +151,29 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
     setIsLoading(true);
     setHasSearched(true);
 
+    const startTime = performance.now();
     try {
-      const software = await getSoftware(taskDescription);
-      setSoftware(software ?? []);
+      const results = await getSoftware(taskDescription);
+      setSoftware(results);
     } catch (error) {
       console.error("Error Fetching Software:", error);
     }
+    const endTime = performance.now();
+    setSearchTime(endTime - startTime);
 
     setIsLoading(false);
   };
+
+  const filteredSoftware = software.filter((sw) => {
+    const matchesPlatform =
+      filters.platform === "all" || sw.platforms.includes(filters.platform);
+    const matchesPricing =
+      filters.pricing === "all" || sw.pricing === filters.pricing;
+
+    return matchesPlatform && matchesPricing;
+  });
+
+  const isFiltered = filters.platform !== "all" || filters.pricing !== "all";
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
@@ -196,9 +221,94 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                 layout="compact"
               />
 
-              {software.length > 0 ? (
+              {/* Filters Section with Results Summary */}
+              <div className="mb-8 bg-white rounded-lg shadow p-6">
+                {/* Results Summary */}
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center text-gray-600">
+                      <Database className="w-5 h-5 mr-2 text-blue-500" />
+                      <span>
+                        Found{" "}
+                        <span className="font-semibold text-gray-900">
+                          {software.length}
+                        </span>{" "}
+                        results
+                        {isFiltered && (
+                          <>
+                            <span className="mx-2">•</span>
+                            <Filter className="w-4 h-4 inline mr-1 text-purple-500" />
+                            <span>
+                              Showing{" "}
+                              <span className="font-semibold text-gray-900">
+                                {filteredSoftware.length}
+                              </span>
+                            </span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Clock className="w-5 h-5 mr-2 text-green-500" />
+                      <span>
+                        Search completed in{" "}
+                        <span className="font-semibold text-gray-900">
+                          {(searchTime / 1000).toFixed(2)}
+                        </span>{" "}
+                        seconds
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Filters
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Platform
+                    </label>
+                    <select
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={filters.platform}
+                      onChange={(e) =>
+                        setFilters({ ...filters, platform: e.target.value })
+                      }
+                    >
+                      <option value="all">All Platforms</option>
+                      {uniquePlatforms.map((platform) => (
+                        <option key={platform} value={platform}>
+                          {platform}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pricing
+                    </label>
+                    <select
+                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      value={filters.pricing}
+                      onChange={(e) =>
+                        setFilters({ ...filters, pricing: e.target.value })
+                      }
+                    >
+                      <option value="all">All Pricing Types</option>
+                      {uniquePricing.map((pricing) => (
+                        <option key={pricing} value={pricing}>
+                          {pricing}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {filteredSoftware.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {software.map((sw) => (
+                  {filteredSoftware.map((sw) => (
                     <SoftwareCard key={sw.id} software={sw} />
                   ))}
                 </div>
