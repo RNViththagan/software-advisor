@@ -1,15 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Search, Loader, Sparkles } from "lucide-react";
+// @ts-ignore
+import SoftwareInterface from "../data/software.ts";
 import { SoftwareCard } from "../components/SoftwareCard";
 import { getSuggestions, getSoftware } from "../lib/gemini";
 import debounce from "lodash/debounce";
 
-const TaskDescriptionInput = ({
+interface TaskDescriptionInputProps {
+  taskDescription: string;
+  setTaskDescription: React.Dispatch<React.SetStateAction<string>>;
+  handleSearch: () => void;
+  descriptionSuggestions: string[];
+  layout?: "default" | "compact";
+}
+
+const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
   taskDescription,
   setTaskDescription,
   handleSearch,
   descriptionSuggestions,
-  layout = "default", // "default" or "compact"
+  layout = "default",
 }) => {
   const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
     useState(false);
@@ -96,27 +106,24 @@ interface HomeProps {
 }
 
 export function Home({ hasSearched, setHasSearched }: HomeProps) {
-  const [taskDescription, setTaskDescription] = useState("");
+  const [taskDescription, setTaskDescription] = useState<string>("");
   const [descriptionSuggestions, setDescriptionSuggestions] = useState<
     string[]
   >([]);
-  const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
-    useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const descriptionRef = useRef<HTMLDivElement>(null);
-  const [software, setSoftware] = useState([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [software, setSoftware] = useState<SoftwareInterface[]>([]);
 
   // Reset taskDescription when hasSearched becomes false
   useEffect(() => {
     if (!hasSearched) {
-      setTaskDescription(""); // Reset taskDescription to empty
+      setTaskDescription("");
     }
-  }, [hasSearched]); // Depend on hasSearched, so it runs whenever it changes
+  }, [hasSearched]);
 
   const debouncedGetSuggestions = useRef(
     debounce(async (input: string) => {
       const suggestions = await getSuggestions(input);
-      setDescriptionSuggestions(suggestions?.suggestions);
+      setDescriptionSuggestions(suggestions?.suggestions ?? []);
     }, 500),
   ).current;
 
@@ -130,19 +137,19 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
 
   const handleSearch = async () => {
     if (!taskDescription) return;
-    setShowDescriptionSuggestions(false);
     setIsLoading(true);
     setHasSearched(true);
 
     try {
       const software = await getSoftware(taskDescription);
-      setSoftware(software);
+      setSoftware(software ?? []);
     } catch (error) {
       console.error("Error Fetching Software:", error);
     }
 
     setIsLoading(false);
   };
+
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
       {!hasSearched ? (
@@ -166,7 +173,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
               setTaskDescription={setTaskDescription}
               handleSearch={handleSearch}
               descriptionSuggestions={descriptionSuggestions}
-              layout="default" // or "compact"
+              layout="default"
             />
           </div>
         </>
@@ -186,7 +193,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                 setTaskDescription={setTaskDescription}
                 handleSearch={handleSearch}
                 descriptionSuggestions={descriptionSuggestions}
-                layout="compact" // or "compact"
+                layout="compact"
               />
 
               {software.length > 0 ? (
