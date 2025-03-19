@@ -161,6 +161,10 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
   useEffect(() => {
     if (!hasSearched) {
       setTaskDescription("");
+      setFilters({
+        platform: "all",
+        pricing: "all",
+      });
     }
   }, [hasSearched]);
   useEffect(() => {
@@ -186,7 +190,10 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
     if (!taskDescription) return;
     setIsLoading(true);
     setHasSearched(true);
-
+    setFilters({
+      platform: "all",
+      pricing: "all",
+    });
     const startTime = performance.now();
     try {
       const results = await getSoftware(taskDescription);
