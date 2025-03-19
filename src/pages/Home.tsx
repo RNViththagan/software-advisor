@@ -257,9 +257,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                 layout="compact"
               />
 
-              {/* Filters Section with Results Summary */}
               <div className="mb-8 bg-white rounded-lg shadow p-6">
-                {/* Results Summary */}
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
                   <div className="flex items-center space-x-6">
                     <div className="flex items-center text-gray-600">
