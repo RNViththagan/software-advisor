@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { SoftwareCard } from "../components/SoftwareCard";
 import { getSuggestions, getSoftware } from "../lib/gemini";
+import debounce from "lodash/debounce";
 
 interface TaskDescriptionInputProps {
   taskDescription: string;
@@ -32,7 +33,7 @@ const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
 }) => {
   const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
     useState(false);
-
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   return (
     <div
       className={`${layout === "default" ? "" : "mb-8"} bg-white rounded-lg shadow p-6`}
@@ -57,12 +58,32 @@ const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
                 onChange={(e) => {
                   setTaskDescription(e.target.value);
                   setShowDescriptionSuggestions(true);
+                  setSelectedIndex(-1);
                 }}
                 onFocus={() => setShowDescriptionSuggestions(true)}
+                onBlur={() =>
+                  setTimeout(() => setShowDescriptionSuggestions(false), 200)
+                }
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && taskDescription.trim()) {
+                  if (e.key === "ArrowDown") {
                     e.preventDefault();
-                    handleSearch();
+                    setSelectedIndex((prev) =>
+                      prev < descriptionSuggestions.length - 1 ? prev + 1 : 0,
+                    );
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                      prev > 0 ? prev - 1 : descriptionSuggestions.length - 1,
+                    );
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (selectedIndex >= 0) {
+                      setSelectedIndex(-1);
+                      setTaskDescription(descriptionSuggestions[selectedIndex]);
+                      setShowDescriptionSuggestions(false);
+                    } else if (taskDescription.trim()) {
+                      handleSearch();
+                    }
                   }
                 }}
               />
@@ -72,10 +93,14 @@ const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
                     {descriptionSuggestions.map((suggestion, index) => (
                       <button
                         key={index}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md"
-                        onClick={() => {
+                        className={`w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-md last:rounded-b-md ${
+                          selectedIndex === index ? "bg-gray-200" : ""
+                        }`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                           setTaskDescription(suggestion);
                           setShowDescriptionSuggestions(false);
+                          setSelectedIndex(-1);
                         }}
                       >
                         {suggestion}
@@ -135,15 +160,22 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
   ).sort();
 
   useEffect(() => {
-    if (taskDescription.length >= 3) {
-      const getAutocompleteSuggestions = async () => {
-        const suggestions = await getSuggestions(taskDescription);
-        setDescriptionSuggestions(suggestions?.suggestions ?? []);
-      };
-      getAutocompleteSuggestions();
-    } else {
-      setDescriptionSuggestions([]);
-    }
+    const fetchSuggestions = debounce(async () => {
+      if (taskDescription.length >= 3) {
+        try {
+          const suggestions = await getSuggestions(taskDescription);
+          setDescriptionSuggestions(suggestions?.suggestions ?? []);
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+        }
+      } else {
+        setDescriptionSuggestions([]);
+      }
+    }, 500); // Wait 500ms before making the API request
+
+    fetchSuggestions();
+
+    return () => fetchSuggestions.cancel(); // Cleanup to prevent unnecessary calls
   }, [taskDescription]);
 
   const handleSearch = async () => {
