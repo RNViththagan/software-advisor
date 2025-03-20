@@ -1,6 +1,6 @@
 # Software Advisor
 
-The **Software Advisor** project provides software recommendations based on specific user task descriptions. Using **Node.js** in the backend, it connects to the **Google Gemini API** to generate AI-based recommendations. This repository contains the backend setup with a planned **Next.js** frontend.
+The **Software Advisor** project provides software recommendations based on specific user task descriptions. it connects to the **Google Gemini API** to generate AI-based recommendations.
 
 ## Project Structure
 
