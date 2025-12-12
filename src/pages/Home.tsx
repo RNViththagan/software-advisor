@@ -167,24 +167,6 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
       });
     }
   }, [hasSearched]);
-  useEffect(() => {
-    const fetchSuggestions = debounce(async () => {
-      if (taskDescription.length >= 3) {
-        try {
-          const suggestions = await getSuggestions(taskDescription);
-          setDescriptionSuggestions(suggestions?.suggestions ?? []);
-        } catch (error) {
-          console.error("Error fetching suggestions:", error);
-        }
-      } else {
-        setDescriptionSuggestions([]);
-      }
-    }, 500);
-
-    fetchSuggestions();
-
-    return () => fetchSuggestions.cancel(); // Cleanup to prevent unnecessary calls
-  }, [taskDescription]);
 
   const handleSearch = async () => {
     if (!taskDescription) return;
