@@ -16,6 +16,7 @@ interface TaskDescriptionInputProps {
   setTaskDescription: React.Dispatch<React.SetStateAction<string>>;
   handleSearch: () => void;
   descriptionSuggestions: string[];
+  fetchSuggestions: (text: string) => void;
   layout?: "default" | "compact";
 }
 
@@ -29,6 +30,7 @@ const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
   setTaskDescription,
   handleSearch,
   descriptionSuggestions,
+  fetchSuggestions,
   layout = "default",
 }) => {
   const [showDescriptionSuggestions, setShowDescriptionSuggestions] =
@@ -56,9 +58,11 @@ const TaskDescriptionInput: React.FC<TaskDescriptionInputProps> = ({
                 } w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500`}
                 value={taskDescription}
                 onChange={(e) => {
-                  setTaskDescription(e.target.value);
+                  const newValue = e.target.value;
+                  setTaskDescription(newValue);
                   setShowDescriptionSuggestions(true);
                   setSelectedIndex(-1);
+                  fetchSuggestions(newValue);
                 }}
                 onFocus={() => setShowDescriptionSuggestions(true)}
                 onBlur={() =>
@@ -152,6 +156,34 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
   });
   const [searchTime, setSearchTime] = useState<number>(0);
 
+  // Debounced function to fetch suggestions
+  const fetchSuggestions = React.useMemo(
+    () =>
+      debounce(async (text: string) => {
+        if (text.trim().length < 3) {
+          setDescriptionSuggestions([]);
+          return;
+        }
+        try {
+          const result = await getSuggestions(text);
+          if (result?.suggestions) {
+            setDescriptionSuggestions(result.suggestions);
+          }
+        } catch (error) {
+          console.error("Error fetching suggestions:", error);
+          setDescriptionSuggestions([]);
+        }
+      }, 800), // Wait 800ms after user stops typing
+    []
+  );
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      fetchSuggestions.cancel();
+    };
+  }, [fetchSuggestions]);
+
   const uniquePlatforms = Array.from(
     new Set(software.flatMap((sw) => sw.platforms)),
   ).sort();
@@ -223,6 +255,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
               setTaskDescription={setTaskDescription}
               handleSearch={handleSearch}
               descriptionSuggestions={descriptionSuggestions}
+              fetchSuggestions={fetchSuggestions}
               layout="default"
             />
           </div>
@@ -243,6 +276,7 @@ export function Home({ hasSearched, setHasSearched }: HomeProps) {
                 setTaskDescription={setTaskDescription}
                 handleSearch={handleSearch}
                 descriptionSuggestions={descriptionSuggestions}
+                fetchSuggestions={fetchSuggestions}
                 layout="compact"
               />
 
