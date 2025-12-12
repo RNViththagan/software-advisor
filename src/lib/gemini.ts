@@ -2,13 +2,64 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Software } from "../data/software.ts";
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-const geminiModel = "gemini-2.0-flash";
+const geminiModel = "gemini-2.5-flash";
 
-export async function getSuggestions(input: string): Promise<string[]> {
+// Rate limiting configuration
+const RATE_LIMIT_DELAY = 1000; // Minimum delay between API calls (ms)
+let lastApiCallTime = 0;
+
+// Helper function to wait for rate limit
+function waitForRateLimit(): Promise<void> {
+  const now = Date.now();
+  const timeSinceLastCall = now - lastApiCallTime;
+  const waitTime = Math.max(0, RATE_LIMIT_DELAY - timeSinceLastCall);
+  
+  if (waitTime > 0) {
+    return new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+  return Promise.resolve();
+}
+
+// Helper function for exponential backoff retry
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  baseDelay = 1000
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      await waitForRateLimit();
+      lastApiCallTime = Date.now();
+      return await fn();
+    } catch (error: any) {
+      const isRateLimitError = 
+        error?.message?.includes('429') || 
+        error?.message?.toLowerCase().includes('rate limit') ||
+        error?.message?.toLowerCase().includes('quota');
+      
+      const isOverloadedError = 
+        error?.message?.includes('503') ||
+        error?.message?.toLowerCase().includes('overloaded');
+      
+      if ((isRateLimitError || isOverloadedError) && attempt < maxRetries) {
+        const delay = baseDelay * Math.pow(2, attempt);
+        const errorType = isOverloadedError ? 'Server overloaded' : 'Rate limit hit';
+        console.warn(`${errorType}, retrying in ${delay}ms... (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
+
+export async function getSuggestions(input: string): Promise<{ completed_text: string; suggestions: string[] }> {
   if (!input.trim()) return { completed_text: input, suggestions: [] };
 
   try {
-    const model = genAI.getGenerativeModel({ model: geminiModel });
+    return await retryWithBackoff(async () => {
+      const model = genAI.getGenerativeModel({ model: geminiModel });
 
     // AI prompt ensuring only the missing words are suggested
     const prompt = `
@@ -61,15 +112,17 @@ export async function getSuggestions(input: string): Promise<string[]> {
       //console.error("Error parsing JSON:", error);
       return { completed_text: input, suggestions: [] };
     }
+    });
   } catch (error) {
-    //console.error("Error generating completion:", error);
+    console.error("Error generating completion:", error);
     return { completed_text: input, suggestions: [] };
   }
 }
 
 export async function getSoftware(description: string): Promise<any> {
   try {
-    const model = genAI.getGenerativeModel({ model: geminiModel });
+    return await retryWithBackoff(async () => {
+      const model = genAI.getGenerativeModel({ model: geminiModel });
     const prompt = `
 Generate a structured JSON output for software recommendations based on the given task description:  
 '${description}'
@@ -101,23 +154,24 @@ Each software recommendation should be an object with the following attributes:
 `;
 
     const result = await model.generateContent(prompt);
-    const match =
-      result.response?.candidates?.[0]?.content?.parts?.[0]?.text.match(
-        /\[.*\]/s,
-      );
+    const text = result.response?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const match = text?.match(/\[.*\]/s);
     const jsonData = match ? JSON.parse(match[0]) : null;
 
-    if (!jsonData)
-      return res.status(500).json({ error: "Invalid JSON response from AI" });
+    if (!jsonData) {
+      console.error("Invalid JSON response from AI");
+      return [];
+    }
 
     // Convert prices and validate website links
     const processedData = jsonData.map((software: Software) => ({
       ...software,
-      official_website: software.official_website?.startsWith("http")
-        ? software.official_website
+      officialWebsite: software.officialWebsite?.startsWith("http")
+        ? software.officialWebsite
         : "N/A",
     }));
     return processedData;
+    });
   } catch (error) {
     console.error("Error analyzing software needs:", error);
     return null;
