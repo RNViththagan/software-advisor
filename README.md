@@ -1,6 +1,6 @@
 # Software Advisor
 
-The **Software Advisor** project provides software recommendations based on specific user task descriptions. it connects to the **Google Gemini API** to generate AI-based recommendations.
+The **Software Advisor** project provides software recommendations based on specific user task descriptions. it connects to the **Google's Gemini API** to generate AI-based recommendations.
 
 ## Project Structure
 
